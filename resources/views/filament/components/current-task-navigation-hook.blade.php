@@ -1,0 +1,1 @@
+<livewire:current-task-navigation />
