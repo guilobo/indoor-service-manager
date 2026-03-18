@@ -6,6 +6,7 @@ use App\Models\Contract;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class ContractInfolist
 {
@@ -23,7 +24,7 @@ class ContractInfolist
                             ->label('Status')
                             ->badge(),
                         TextEntry::make('start_date')
-                            ->label('Início')
+                            ->label('Inicio')
                             ->date('d/m/Y'),
                         TextEntry::make('end_date')
                             ->label('Fim')
@@ -36,33 +37,38 @@ class ContractInfolist
                             ->label('Valor hora')
                             ->money('BRL', locale: 'pt_BR'),
                         TextEntry::make('domain_rate')
-                            ->label('Valor domínio')
+                            ->label('Valor dominio')
                             ->money('BRL', locale: 'pt_BR'),
                         TextEntry::make('total_domains')
-                            ->label('Total de domínios')
+                            ->label('Total de dominios')
                             ->state(fn (Contract $record): int => $record->total_domains),
                         TextEntry::make('hours_cost')
                             ->label('Custo de horas')
                             ->state(fn (Contract $record): string => 'R$ '.number_format($record->hours_cost, 2, ',', '.')),
                         TextEntry::make('domain_cost')
-                            ->label('Custo de domínios')
+                            ->label('Custo de dominios')
                             ->state(fn (Contract $record): string => 'R$ '.number_format($record->domain_cost, 2, ',', '.')),
                         TextEntry::make('estimated_monthly_value')
                             ->label('Valor mensal estimado')
                             ->state(fn (Contract $record): string => 'R$ '.number_format($record->estimated_monthly_value, 2, ',', '.')),
                         TextEntry::make('used_hours')
-                            ->label('Horas usadas no mês atual')
+                            ->label('Horas usadas no mes atual')
                             ->state(fn (Contract $record): string => number_format($record->usageSummary(now()->startOfMonth(), now()->endOfMonth())['total_used_hours'], 2, ',', '.').' h'),
                         TextEntry::make('remaining_hours')
-                            ->label('Saldo no mês atual')
+                            ->label('Saldo no mes atual')
                             ->state(fn (Contract $record): string => number_format($record->usageSummary(now()->startOfMonth(), now()->endOfMonth())['remaining_hours'], 2, ',', '.').' h'),
                         TextEntry::make('description')
-                            ->label('Descrição')
+                            ->label('Descricao')
                             ->placeholder('-')
                             ->columnSpanFull(),
                         TextEntry::make('notes')
-                            ->label('Observações')
+                            ->label('Observacoes')
                             ->placeholder('-')
+                            ->columnSpanFull(),
+                        TextEntry::make('contract_file')
+                            ->label('Arquivo do contrato')
+                            ->state(fn (Contract $record): string => filled($record->contract_file) ? basename($record->contract_file) : '-')
+                            ->url(fn (Contract $record): ?string => filled($record->contract_file) ? Storage::disk('public')->url($record->contract_file) : null, shouldOpenInNewTab: true)
                             ->columnSpanFull(),
                     ]),
             ]);

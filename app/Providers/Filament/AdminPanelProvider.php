@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->spa()
+            ->databaseNotifications()
             ->brandName('Indoor Service Manager')
             ->colors([
                 'primary' => Color::Amber,

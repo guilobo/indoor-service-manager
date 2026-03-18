@@ -10,6 +10,7 @@ use App\Models\Domain;
 use App\Models\User;
 use App\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -72,7 +73,26 @@ it('encrypts sensitive domain fields at rest', function () {
         ->and($rawValues['ftp_password'])->not->toContain('super-secreta')
         ->and($rawValues['email_accounts'])->not->toContain('senha-email')
         ->and($domain->fresh()->credentials)->toBe(['usuario' => 'ftp-user', 'senha' => 'segredo'])
-        ->and($domain->fresh()->ftp_password)->toBe('super-secreta');
+        ->and($domain->fresh()->ftp_password)->toBe('super-secreta')
+        ->and($domain->fresh()->email_accounts)->toBe([
+            ['email' => 'suporte@indoor.test', 'password' => 'senha-email'],
+        ]);
+});
+
+it('reads legacy plain json email accounts without decryption errors', function () {
+    $domain = Domain::factory()->create();
+
+    DB::table('domains')
+        ->where('id', $domain->id)
+        ->update([
+            'email_accounts' => json_encode([
+                ['email' => 'legado@indoor.test', 'password' => '123456'],
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+
+    expect($domain->fresh()->email_accounts)->toBe([
+        ['email' => 'legado@indoor.test', 'password' => '123456'],
+    ]);
 });
 
 it('allows admin users to access the reports page', function () {
@@ -102,6 +122,21 @@ it('calculates activity duration from time entries', function () {
         ->and(Activity::firstTrackedDate([
             ['started_at' => '2026-03-18 09:00:00', 'ended_at' => null],
         ]))->toBe('2026-03-18');
+});
+
+it('normalizes uploaded media items when the upload path arrives as an array', function () {
+    expect(Activity::normalizeMediaItems([
+        [
+            'title' => 'Manual do cliente',
+            'path' => ['activities/files/manual.pdf'],
+        ],
+    ]))->toBe([
+        [
+            'title' => 'Manual do cliente',
+            'path' => 'activities/files/manual.pdf',
+            'url' => url('/storage/activities/files/manual.pdf'),
+        ],
+    ]);
 });
 
 it('redirects the current task page to the running activity', function () {

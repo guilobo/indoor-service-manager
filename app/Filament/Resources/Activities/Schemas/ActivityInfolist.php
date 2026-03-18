@@ -38,10 +38,12 @@ class ActivityInfolist
                             ->columnSpanFull(),
                         TextEntry::make('images')
                             ->label('Imagens')
-                            ->state(fn (Activity $record): string => blank($record->images) ? '-' : count($record->images).' arquivo(s)'),
+                            ->state(fn (Activity $record): string => blank($record->images_list) ? '-' : collect($record->images_list)->map(fn (array $item): string => "{$item['title']}: {$item['url']}")->implode(', '))
+                            ->columnSpanFull(),
                         TextEntry::make('files')
                             ->label('Arquivos')
-                            ->state(fn (Activity $record): string => blank($record->files) ? '-' : count($record->files).' arquivo(s)'),
+                            ->state(fn (Activity $record): string => blank($record->files_list) ? '-' : collect($record->files_list)->map(fn (array $item): string => "{$item['title']}: {$item['url']}")->implode(', '))
+                            ->columnSpanFull(),
                         TextEntry::make('external_links_list')
                             ->label('Links externos')
                             ->state(fn (Activity $record): string => blank($record->external_links_list) ? '-' : implode(', ', $record->external_links_list))

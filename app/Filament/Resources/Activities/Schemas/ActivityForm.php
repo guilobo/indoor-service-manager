@@ -110,25 +110,51 @@ class ActivityForm
                     ]),
                 Section::make('Anexos e links')
                     ->schema([
-                        FileUpload::make('images')
+                        Repeater::make('images')
                             ->label('Imagens')
-                            ->directory('activities/images')
-                            ->image()
-                            ->multiple()
-                            ->disk('public'),
-                        FileUpload::make('files')
+                            ->default([])
+                            ->schema([
+                                TextInput::make('title')
+                                    ->label('Titulo')
+                                    ->required()
+                                    ->maxLength(255),
+                                FileUpload::make('path')
+                                    ->label('Imagem')
+                                    ->directory('activities/images')
+                                    ->image()
+                                    ->disk('public')
+                                    ->required(),
+                            ])
+                            ->columns(2)
+                            ->columnSpanFull(),
+                        Repeater::make('files')
                             ->label('Arquivos')
-                            ->directory('activities/files')
-                            ->multiple()
-                            ->disk('public'),
+                            ->default([])
+                            ->schema([
+                                TextInput::make('title')
+                                    ->label('Titulo')
+                                    ->required()
+                                    ->maxLength(255),
+                                FileUpload::make('path')
+                                    ->label('Arquivo')
+                                    ->directory('activities/files')
+                                    ->disk('public')
+                                    ->required(),
+                            ])
+                            ->columns(2)
+                            ->columnSpanFull(),
                         Repeater::make('external_links')
                             ->label('Links externos')
                             ->schema([
+                                TextInput::make('title')
+                                    ->label('Titulo')
+                                    ->maxLength(255),
                                 TextInput::make('url')
                                     ->label('URL')
                                     ->url()
                                     ->required(),
                             ])
+                            ->columns(2)
                             ->default([])
                             ->columnSpanFull(),
                     ]),

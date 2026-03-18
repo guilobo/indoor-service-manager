@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\FlexibleEncryptedArray;
 use App\DomainStatus;
 use Database\Factories\DomainFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -41,7 +42,7 @@ class Domain extends Model
             'status' => DomainStatus::class,
             'credentials' => 'encrypted:array',
             'ftp_password' => 'encrypted',
-            'email_accounts' => 'encrypted:array',
+            'email_accounts' => FlexibleEncryptedArray::class,
             'other_data' => 'array',
         ];
     }

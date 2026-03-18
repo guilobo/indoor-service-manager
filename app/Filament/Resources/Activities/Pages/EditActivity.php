@@ -26,6 +26,9 @@ class EditActivity extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['time_entries'] ??= [];
+        $data['images'] = Activity::prepareMediaItemsForStorage($data['images'] ?? []);
+        $data['files'] = Activity::prepareMediaItemsForStorage($data['files'] ?? []);
+        $data['external_links'] = Activity::prepareExternalLinksForStorage($data['external_links'] ?? []);
         $data['time_entries'] = Activity::sortTimeEntriesDescending($data['time_entries']);
 
         return $data;
@@ -39,6 +42,9 @@ class EditActivity extends EditRecord
     {
         $timeEntries = Activity::sortTimeEntriesDescending($data['time_entries'] ?? []);
 
+        $data['images'] = Activity::prepareMediaItemsForStorage($data['images'] ?? []);
+        $data['files'] = Activity::prepareMediaItemsForStorage($data['files'] ?? []);
+        $data['external_links'] = Activity::prepareExternalLinksForStorage($data['external_links'] ?? []);
         $data['time_entries'] = $timeEntries;
         $data['duration_minutes'] = Activity::calculateDurationMinutes($timeEntries);
         $data['is_in_progress'] = collect($timeEntries)

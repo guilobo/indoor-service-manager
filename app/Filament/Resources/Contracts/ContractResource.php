@@ -44,8 +44,8 @@ class ContractResource extends Resource
     public static function getRelations(): array
     {
         return [
-            DomainsRelationManager::class,
             ActivitiesRelationManager::class,
+            DomainsRelationManager::class,
         ];
     }
 

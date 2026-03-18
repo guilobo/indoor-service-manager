@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Activity extends Model
 {
@@ -114,8 +116,129 @@ class Activity extends Model
     public function getExternalLinksListAttribute(): array
     {
         return collect($this->external_links)
-            ->map(fn (mixed $link): ?string => is_array($link) ? ($link['url'] ?? null) : $link)
+            ->map(function (mixed $link): ?string {
+                if (is_array($link)) {
+                    $url = $link['url'] ?? null;
+
+                    if (blank($url)) {
+                        return null;
+                    }
+
+                    $title = $link['title'] ?? null;
+
+                    return filled($title) ? "{$title}: {$url}" : $url;
+                }
+
+                return is_string($link) ? $link : null;
+            })
             ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, mixed>|null  $links
+     * @return list<array{title: ?string, url: string}>
+     */
+    public static function prepareExternalLinksForStorage(?array $links): array
+    {
+        return collect($links ?? [])
+            ->map(function (mixed $link): ?array {
+                if (is_string($link) && filled($link)) {
+                    return [
+                        'title' => null,
+                        'url' => $link,
+                    ];
+                }
+
+                if (! is_array($link) || blank($link['url'] ?? null)) {
+                    return null;
+                }
+
+                return [
+                    'title' => filled($link['title'] ?? null) ? (string) $link['title'] : null,
+                    'url' => (string) $link['url'],
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{title: string, path: string, url: string}>
+     */
+    public function getImagesListAttribute(): array
+    {
+        return self::normalizeMediaItems($this->images);
+    }
+
+    /**
+     * @return list<array{title: string, path: string, url: string}>
+     */
+    public function getFilesListAttribute(): array
+    {
+        return self::normalizeMediaItems($this->files);
+    }
+
+    /**
+     * @param  array<int, mixed>|null  $items
+     * @return list<array{title: string, path: string, url: string}>
+     */
+    public static function normalizeMediaItems(?array $items): array
+    {
+        return collect($items ?? [])
+            ->map(function (mixed $item): ?array {
+                if (is_string($item) && filled($item)) {
+                    return [
+                        'title' => pathinfo($item, PATHINFO_FILENAME),
+                        'path' => $item,
+                        'url' => Storage::disk('public')->url($item),
+                    ];
+                }
+
+                if (! is_array($item) || blank($item['path'] ?? null)) {
+                    return null;
+                }
+
+                $path = $item['path'];
+
+                if (is_array($path)) {
+                    $path = collect($path)
+                        ->filter(fn (mixed $value): bool => is_string($value) && filled($value))
+                        ->first();
+                }
+
+                if (! is_string($path) || blank($path)) {
+                    return null;
+                }
+
+                $title = filled($item['title'] ?? null)
+                    ? (string) $item['title']
+                    : pathinfo($path, PATHINFO_FILENAME);
+
+                return [
+                    'title' => $title,
+                    'path' => $path,
+                    'url' => Storage::disk('public')->url($path),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, mixed>|null  $items
+     * @return list<array{title: string, path: string}>
+     */
+    public static function prepareMediaItemsForStorage(?array $items): array
+    {
+        return collect(self::normalizeMediaItems($items))
+            ->map(fn (array $item): array => [
+                'title' => Str::of($item['title'])->trim()->value(),
+                'path' => $item['path'],
+            ])
             ->values()
             ->all();
     }

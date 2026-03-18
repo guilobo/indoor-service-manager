@@ -24,7 +24,7 @@ return new class extends Migration
             $table->text('ftp_password')->nullable();
             $table->string('hosting')->nullable();
             $table->string('panel_url')->nullable();
-            $table->json('email_accounts')->nullable();
+            $table->longText('email_accounts')->nullable();
             $table->json('other_data')->nullable();
             $table->timestamps();
 

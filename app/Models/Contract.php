@@ -30,6 +30,7 @@ class Contract extends Model
         'domain_rate',
         'status',
         'notes',
+        'contract_file',
     ];
 
     /**

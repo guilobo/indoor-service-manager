@@ -13,7 +13,6 @@ use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Widgets\AccountWidget;
 
 class Dashboard extends BaseDashboard
 {
@@ -63,19 +62,10 @@ class Dashboard extends BaseDashboard
     {
         return $schema
             ->components([
-                Grid::make([
-                    'md' => 3,
-                    'xl' => 3,
-                ])
+                Grid::make(1)
                     ->schema([
                         EmbeddedSchema::make('filtersForm')
-                            ->columnSpan([
-                                'md' => 2,
-                                'xl' => 2,
-                            ]),
-                        Section::make('Bem-vindo')
-                            ->columnSpan(1)
-                            ->schema($this->getWidgetsSchemaComponents([AccountWidget::class])),
+                            ->columnSpanFull(),
                     ]),
                 Grid::make($this->getColumns())
                     ->schema($this->getWidgetsSchemaComponents($this->getWidgets())),
