@@ -3,6 +3,7 @@
 use App\ContractStatus;
 use App\DomainStatus;
 use App\Filament\Resources\Activities\ActivityResource;
+use App\Filament\Resources\Activities\Pages\EditActivity;
 use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -230,4 +232,45 @@ it('redirects the current task page to the running activity', function () {
     $this->actingAs($user)
         ->get('/admin/current-task')
         ->assertRedirect(ActivityResource::getUrl('edit', ['record' => $activity], panel: 'admin'));
+});
+
+it('starts an activity timer and stores notes for the running interval', function () {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $activity = Activity::factory()->create([
+        'time_entries' => [],
+        'duration_minutes' => 0,
+        'is_in_progress' => false,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(EditActivity::class, ['record' => $activity->getKey()])
+        ->call('toggleTimeEntry')
+        ->assertSet('data.time_entries.0.ended_at', null)
+        ->assertHasNoErrors();
+
+    $activity->refresh();
+
+    expect($activity->is_in_progress)->toBeTrue()
+        ->and($activity->time_entries[0]['ended_at'])->toBeNull()
+        ->and($activity->time_entries[0])->toHaveKey('notes');
+
+    $activity->update([
+        'time_entries' => Activity::sortTimeEntriesDescending([
+            [
+                ...$activity->time_entries[0],
+                'notes' => 'Investigando erro do cliente',
+            ],
+        ]),
+    ]);
+
+    expect($activity->fresh()->time_entries[0]['notes'])->toBe('Investigando erro do cliente');
+
+    $this->actingAs($user)
+        ->get(ActivityResource::getUrl('edit', ['record' => $activity], panel: 'admin'))
+        ->assertSuccessful()
+        ->assertSee('Tempo em andamento')
+        ->assertSee('O que estou fazendo');
 });

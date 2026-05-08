@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Uploads\LivewireUploadStore;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Database\Factories\ActivityFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -129,8 +130,29 @@ class Activity extends Model
 
     public function hasOpenTimeEntry(): bool
     {
-        return collect($this->time_entries)
-            ->contains(fn (mixed $entry): bool => is_array($entry) && filled($entry['started_at'] ?? null) && blank($entry['ended_at'] ?? null));
+        return self::openTimeEntry($this->time_entries ?? []) !== null;
+    }
+
+    public static function openTimeEntry(array $timeEntries): ?array
+    {
+        return collect($timeEntries)
+            ->first(fn (mixed $entry): bool => is_array($entry) && filled($entry['started_at'] ?? null) && blank($entry['ended_at'] ?? null));
+    }
+
+    public static function openTimeEntryElapsedSeconds(array $timeEntries, ?CarbonInterface $now = null): int
+    {
+        $openEntry = self::openTimeEntry($timeEntries);
+
+        if (! is_array($openEntry) || blank($openEntry['started_at'] ?? null)) {
+            return 0;
+        }
+
+        return max(Carbon::parse($openEntry['started_at'])->diffInSeconds($now ?? now()), 0);
+    }
+
+    public static function formatElapsedSeconds(int $seconds): string
+    {
+        return gmdate('H:i:s', max($seconds, 0));
     }
 
     public static function calculateDurationMinutes(array $timeEntries): int
@@ -164,6 +186,11 @@ class Activity extends Model
         return collect($timeEntries)
             ->filter(fn (mixed $entry): bool => is_array($entry) && filled($entry['started_at'] ?? null))
             ->sortByDesc(fn (array $entry): int => Carbon::parse($entry['started_at'])->getTimestamp())
+            ->map(fn (array $entry): array => [
+                'started_at' => $entry['started_at'],
+                'ended_at' => $entry['ended_at'] ?? null,
+                'notes' => filled($entry['notes'] ?? null) ? (string) $entry['notes'] : null,
+            ])
             ->values()
             ->all();
     }

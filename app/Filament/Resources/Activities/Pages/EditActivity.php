@@ -59,6 +59,8 @@ class EditActivity extends EditRecord
         $this->dispatch('current-task-navigation-refresh');
     }
 
+    public function refreshTimer(): void {}
+
     public function toggleTimeEntry(): void
     {
         $data = $this->data ?? [];
@@ -75,6 +77,7 @@ class EditActivity extends EditRecord
             array_unshift($timeEntries, [
                 'started_at' => $now->toDateTimeString(),
                 'ended_at' => null,
+                'notes' => null,
             ]);
         }
 

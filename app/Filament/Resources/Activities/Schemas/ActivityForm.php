@@ -99,7 +99,7 @@ class ActivityForm
                             ->columnSpanFull(),
                     ]),
                 Section::make('Controle de tempo')
-                    ->description('Cada clique alterna entre iniciar e encerrar o ultimo intervalo aberto.')
+                    ->description('Inicie um intervalo, registre o andamento e finalize quando terminar.')
                     ->visible(fn (string $operation): bool => $operation === 'edit')
                     ->headerActions([
                         Action::make('toggle_time_entry')
@@ -113,6 +113,15 @@ class ActivityForm
                             ->action('toggleTimeEntry'),
                     ])
                     ->schema([
+                        Placeholder::make('running_timer')
+                            ->label('Tempo em andamento')
+                            ->content(fn (callable $get): string => Activity::formatElapsedSeconds(
+                                Activity::openTimeEntryElapsedSeconds($get('time_entries') ?? []),
+                            ))
+                            ->extraAttributes([
+                                'wire:poll.1s' => 'refreshTimer',
+                            ])
+                            ->visible(fn (callable $get): bool => Activity::openTimeEntry($get('time_entries') ?? []) !== null),
                         Repeater::make('time_entries')
                             ->label('Intervalos de tempo')
                             ->default([])
@@ -128,7 +137,13 @@ class ActivityForm
                                 DateTimePicker::make('ended_at')
                                     ->label('Fim')
                                     ->seconds(false),
+                                Textarea::make('notes')
+                                    ->label('O que estou fazendo')
+                                    ->rows(3)
+                                    ->live(onBlur: true)
+                                    ->columnSpanFull(),
                             ])
+                            ->columns(2)
                             ->columnSpanFull(),
                     ]),
                 Section::make('Anexos e links')

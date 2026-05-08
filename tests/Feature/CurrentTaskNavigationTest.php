@@ -22,3 +22,17 @@ it('shows the current task link and timer badge when there is a task in progress
         ->assertSee('Tarefa em andamento')
         ->assertSee(':');
 });
+
+it('formats the elapsed time from the open time entry', function () {
+    $startedAt = now()->subMinutes(5)->subSeconds(10);
+
+    expect(Activity::formatElapsedSeconds(
+        Activity::openTimeEntryElapsedSeconds([
+            [
+                'started_at' => $startedAt->format('Y-m-d H:i:s'),
+                'ended_at' => null,
+                'notes' => 'Analisando o problema',
+            ],
+        ], $startedAt->copy()->addSeconds(310)),
+    ))->toBe('00:05:10');
+});
