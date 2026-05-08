@@ -20,6 +20,7 @@ it('shows the current task link and timer badge when there is a task in progress
 
     Livewire::test(CurrentTaskNavigation::class)
         ->assertSee('Tarefa em andamento')
+        ->assertSee('data-current-task-timer', false)
         ->assertSee(':');
 });
 

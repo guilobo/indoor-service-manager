@@ -23,6 +23,7 @@ class CurrentTaskNavigation extends Component
             'task' => $task,
             'taskUrl' => $task ? ActivityResource::getUrl('edit', ['record' => $task]) : null,
             'elapsedTime' => $task ? $this->formatElapsedTime($task) : null,
+            'elapsedSeconds' => $task ? Activity::openTimeEntryElapsedSeconds($task->time_entries ?? []) : null,
         ]);
     }
 
