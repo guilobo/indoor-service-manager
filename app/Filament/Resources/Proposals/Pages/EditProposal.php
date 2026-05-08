@@ -24,7 +24,7 @@ class EditProposal extends EditRecord
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['attachments'] = Proposal::prepareAttachmentItemsForStorage($data['attachments'] ?? []);
+        $data['attachments'] = Proposal::prepareAttachmentItemsForStorage($data['attachments'] ?? [], 'proposals/attachments', false);
 
         return $data;
     }
@@ -35,7 +35,7 @@ class EditProposal extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['attachments'] = Proposal::prepareAttachmentItemsForStorage($data['attachments'] ?? []);
+        $data['attachments'] = Proposal::prepareAttachmentItemsForStorage($data['attachments'] ?? [], 'proposals/attachments');
 
         return $data;
     }

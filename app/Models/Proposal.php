@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\ProposalStatus;
+use App\Support\Uploads\LivewireUploadStore;
 use Database\Factories\ProposalFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -71,11 +72,21 @@ class Proposal extends Model
      * @param  array<int, mixed>|null  $items
      * @return list<array{title: string, path: string, url: string}>
      */
-    public static function normalizeAttachmentItems(?array $items): array
+    public static function normalizeAttachmentItems(?array $items, ?string $temporaryUploadDirectory = null, bool $failWhenTemporaryUploadMissing = false): array
     {
         return collect($items ?? [])
-            ->map(function (mixed $item): ?array {
+            ->map(function (mixed $item) use ($failWhenTemporaryUploadMissing, $temporaryUploadDirectory): ?array {
                 if (is_string($item) && filled($item)) {
+                    if (LivewireUploadStore::isSerializedTemporaryUpload($item)) {
+                        $item = $temporaryUploadDirectory === null
+                            ? null
+                            : LivewireUploadStore::storePublicly($item, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
+
+                        if ($item === null) {
+                            return null;
+                        }
+                    }
+
                     return [
                         'title' => pathinfo($item, PATHINFO_FILENAME),
                         'path' => $item,
@@ -99,6 +110,16 @@ class Proposal extends Model
                     return null;
                 }
 
+                if (LivewireUploadStore::isSerializedTemporaryUpload($path)) {
+                    $path = $temporaryUploadDirectory === null
+                        ? null
+                        : LivewireUploadStore::storePublicly($path, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
+
+                    if ($path === null) {
+                        return null;
+                    }
+                }
+
                 $title = filled($item['title'] ?? null)
                     ? (string) $item['title']
                     : pathinfo($path, PATHINFO_FILENAME);
@@ -118,9 +139,9 @@ class Proposal extends Model
      * @param  array<int, mixed>|null  $items
      * @return list<array{title: string, path: string}>
      */
-    public static function prepareAttachmentItemsForStorage(?array $items): array
+    public static function prepareAttachmentItemsForStorage(?array $items, ?string $temporaryUploadDirectory = null, bool $failWhenTemporaryUploadMissing = true): array
     {
-        return collect(self::normalizeAttachmentItems($items))
+        return collect(self::normalizeAttachmentItems($items, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing))
             ->map(fn (array $item): array => [
                 'title' => Str::of($item['title'])->trim()->value(),
                 'path' => $item['path'],

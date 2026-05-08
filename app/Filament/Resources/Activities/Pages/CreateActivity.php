@@ -23,8 +23,8 @@ class CreateActivity extends CreateRecord
     {
         $timeEntries = Activity::sortTimeEntriesDescending($data['time_entries'] ?? []);
 
-        $data['images'] = Activity::prepareMediaItemsForStorage($data['images'] ?? []);
-        $data['files'] = Activity::prepareMediaItemsForStorage($data['files'] ?? []);
+        $data['images'] = Activity::prepareMediaItemsForStorage($data['images'] ?? [], 'activities/images');
+        $data['files'] = Activity::prepareMediaItemsForStorage($data['files'] ?? [], 'activities/files');
         $data['external_links'] = Activity::prepareExternalLinksForStorage($data['external_links'] ?? []);
         $data['time_entries'] = $timeEntries;
         $data['duration_minutes'] = Activity::calculateDurationMinutes($timeEntries);

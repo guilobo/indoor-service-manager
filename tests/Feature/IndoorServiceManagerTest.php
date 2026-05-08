@@ -11,6 +11,8 @@ use App\Models\User;
 use App\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -134,9 +136,80 @@ it('normalizes uploaded media items when the upload path arrives as an array', f
         [
             'title' => 'Manual do cliente',
             'path' => 'activities/files/manual.pdf',
-            'url' => url('/storage/activities/files/manual.pdf'),
+            'url' => Storage::disk('public')->url('activities/files/manual.pdf'),
         ],
     ]);
+});
+
+it('stores serialized Livewire uploads on the public disk before saving media items', function () {
+    Storage::fake('tmp-for-tests');
+    Storage::fake('public');
+
+    Storage::disk('tmp-for-tests')->put('livewire-tmp/uploaded-image.png', 'image-bytes');
+
+    $items = Activity::prepareMediaItemsForStorage([
+        [
+            'title' => 'Imagem enviada',
+            'path' => 'livewire-file:uploaded-image.png',
+        ],
+    ], 'activities/images');
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]['title'])->toBe('Imagem enviada')
+        ->and($items[0]['path'])->toStartWith('activities/images/')
+        ->and($items[0]['path'])->toEndWith('.png')
+        ->and($items[0]['path'])->not->toContain('livewire-file:');
+
+    Storage::disk('public')->assertExists($items[0]['path']);
+    Storage::disk('tmp-for-tests')->assertMissing('livewire-tmp/uploaded-image.png');
+});
+
+it('opens the activity edit page with existing remote upload metadata', function () {
+    config()->set('filesystems.disks.public', [
+        'driver' => 'gel5',
+        'endpoint' => 'https://files.test/api/index.php',
+        'key' => 'test-key',
+        'root' => 'indoor-service-manager',
+        'url' => 'https://files.test/storage',
+        'visibility' => 'public',
+        'throw' => false,
+        'report' => false,
+    ]);
+
+    Storage::forgetDisk('public');
+    Http::fake([
+        'files.test/*' => Http::response([
+            'item' => [
+                'exists' => true,
+                'type' => 'file',
+                'size' => 128,
+                'mime_type' => 'image/png',
+            ],
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $activity = Activity::factory()->create([
+        'images' => [
+            [
+                'title' => 'Imagem existente',
+                'path' => 'activities/images/existing.png',
+            ],
+        ],
+        'files' => [
+            [
+                'title' => 'Arquivo existente',
+                'path' => 'activities/files/existing.pdf',
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(ActivityResource::getUrl('edit', ['record' => $activity], panel: 'admin'))
+        ->assertSuccessful();
 });
 
 it('redirects the current task page to the running activity', function () {

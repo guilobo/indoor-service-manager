@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\Proposal;
 use App\ProposalStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -33,7 +34,7 @@ it('normalizes proposal attachments when upload paths arrive as arrays', functio
         [
             'title' => 'Aceite do cliente',
             'path' => 'proposals/attachments/aceite.png',
-            'url' => url('/storage/proposals/attachments/aceite.png'),
+            'url' => Storage::disk('public')->url('proposals/attachments/aceite.png'),
         ],
     ]);
 });
