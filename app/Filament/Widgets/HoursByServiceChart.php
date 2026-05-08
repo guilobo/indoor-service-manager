@@ -25,12 +25,20 @@ class HoursByServiceChart extends ChartWidget
             ->orderByDesc('total_minutes');
 
         if (filled($this->pageFilters['client_id'] ?? null)) {
-            $query->whereExists(function ($subquery): void {
-                $subquery
-                    ->selectRaw('1')
-                    ->from('contracts')
-                    ->whereColumn('contracts.id', 'activities.contract_id')
-                    ->where('contracts.client_id', $this->pageFilters['client_id']);
+            $query->where(function ($clientQuery): void {
+                $clientQuery->whereExists(function ($subquery): void {
+                    $subquery
+                        ->selectRaw('1')
+                        ->from('contracts')
+                        ->whereColumn('contracts.id', 'activities.contract_id')
+                        ->where('contracts.client_id', $this->pageFilters['client_id']);
+                })->orWhereExists(function ($subquery): void {
+                    $subquery
+                        ->selectRaw('1')
+                        ->from('proposals')
+                        ->whereColumn('proposals.id', 'activities.proposal_id')
+                        ->where('proposals.client_id', $this->pageFilters['client_id']);
+                });
             });
         }
 

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Domains;
 use App\Filament\Resources\Domains\Pages\CreateDomain;
 use App\Filament\Resources\Domains\Pages\EditDomain;
 use App\Filament\Resources\Domains\Pages\ListDomains;
+use App\Filament\Resources\Domains\Pages\ManageDomainFiles;
 use App\Filament\Resources\Domains\Schemas\DomainForm;
 use App\Filament\Resources\Domains\Schemas\DomainInfolist;
 use App\Filament\Resources\Domains\Tables\DomainsTable;
@@ -68,6 +69,7 @@ class DomainResource extends Resource
             'index' => ListDomains::route('/'),
             'create' => CreateDomain::route('/create'),
             'edit' => EditDomain::route('/{record}/edit'),
+            'files' => ManageDomainFiles::route('/{record}/files'),
         ];
     }
 }

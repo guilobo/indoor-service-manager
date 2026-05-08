@@ -16,7 +16,11 @@ class ActivityInfolist
                 Section::make('Atividade')
                     ->schema([
                         TextEntry::make('contract.name')
-                            ->label('Contrato'),
+                            ->label('Contrato')
+                            ->placeholder('-'),
+                        TextEntry::make('proposal.title')
+                            ->label('Proposta')
+                            ->placeholder('-'),
                         TextEntry::make('service.name')
                             ->label('Serviço')
                             ->placeholder('-'),

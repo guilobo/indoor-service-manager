@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Domains\Schemas;
 
+use App\DomainAccessType;
 use App\DomainStatus;
 use App\Models\Client;
 use App\Models\Contract;
@@ -20,12 +21,12 @@ class DomainForm
     {
         return $schema
             ->components([
-                Section::make('Dominio')
+                Section::make('Domínio')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 Select::make('client_id')
-                                    ->label('Cliente responsavel')
+                                    ->label('Cliente responsável')
                                     ->options(Client::query()->orderBy('name')->pluck('name', 'id')->all())
                                     ->searchable()
                                     ->preload()
@@ -42,24 +43,45 @@ class DomainForm
                                     ->preload()
                                     ->helperText('Opcional'),
                                 TextInput::make('domain_name')
-                                    ->label('Dominio')
+                                    ->label('Domínio')
                                     ->required()
                                     ->maxLength(255),
                                 Select::make('status')
                                     ->label('Status')
                                     ->options(DomainStatus::class)
                                     ->required(),
+                                Select::make('access_type')
+                                    ->label('Tipo de acesso')
+                                    ->options(DomainAccessType::class)
+                                    ->default(DomainAccessType::Ftp)
+                                    ->required(),
+                                TextInput::make('access_port')
+                                    ->label('Porta')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(65535)
+                                    ->placeholder('Automática conforme o tipo'),
+                                TextInput::make('access_root_path')
+                                    ->label('Diretório raiz')
+                                    ->helperText('Raiz real do acesso remoto. Ex.: /home/dh_9m4upu')
+                                    ->placeholder('/home/usuario')
+                                    ->maxLength(255),
+                                TextInput::make('access_start_path')
+                                    ->label('Pasta inicial')
+                                    ->helperText('Opcional. Caminho relativo dentro da raiz para abrir direto nessa pasta.')
+                                    ->placeholder('contribuicao.sinregas.com.br')
+                                    ->maxLength(255),
                                 TextInput::make('hosting')
                                     ->label('Hospedagem')
                                     ->maxLength(255),
                                 TextInput::make('ftp_host')
-                                    ->label('Host FTP')
+                                    ->label('Host do acesso')
                                     ->maxLength(255),
                                 TextInput::make('ftp_user')
-                                    ->label('Usuario FTP')
+                                    ->label('Usuário de acesso')
                                     ->maxLength(255),
                                 TextInput::make('ftp_password')
-                                    ->label('Senha FTP')
+                                    ->label('Senha de acesso')
                                     ->password()
                                     ->revealable(),
                                 TextInput::make('panel_url')
@@ -68,11 +90,11 @@ class DomainForm
                                     ->maxLength(255),
                             ]),
                         Textarea::make('notes')
-                            ->label('Observacoes')
+                            ->label('Observações')
                             ->rows(4)
                             ->columnSpanFull(),
                     ]),
-                Section::make('Dados tecnicos')
+                Section::make('Dados técnicos')
                     ->schema([
                         KeyValue::make('credentials')
                             ->label('Credenciais')

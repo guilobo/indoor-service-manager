@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Domains\Schemas;
 
+use App\DomainAccessType;
 use App\Models\Domain;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -18,7 +19,7 @@ class DomainInfolist
                 Section::make('Domínio')
                     ->schema([
                         TextEntry::make('client.name')
-                            ->label('Cliente responsavel'),
+                            ->label('Cliente responsável'),
                         TextEntry::make('contract.name')
                             ->label('Contrato'),
                         TextEntry::make('domain_name')
@@ -26,6 +27,19 @@ class DomainInfolist
                         TextEntry::make('status')
                             ->label('Status')
                             ->badge(),
+                        TextEntry::make('access_type')
+                            ->label('Tipo de acesso')
+                            ->formatStateUsing(fn (DomainAccessType|string|null $state): string => $state instanceof DomainAccessType ? $state->getLabel() ?? $state->value : (string) $state)
+                            ->badge(),
+                        TextEntry::make('access_port')
+                            ->label('Porta')
+                            ->placeholder('-'),
+                        TextEntry::make('access_root_path')
+                            ->label('Diretório raiz')
+                            ->placeholder('-'),
+                        TextEntry::make('access_start_path')
+                            ->label('Pasta inicial')
+                            ->placeholder('-'),
                         TextEntry::make('hosting')
                             ->label('Hospedagem')
                             ->placeholder('-'),
@@ -34,13 +48,13 @@ class DomainInfolist
                             ->placeholder('-')
                             ->url(fn (?string $state): ?string => $state, shouldOpenInNewTab: true),
                         TextEntry::make('ftp_host')
-                            ->label('Host FTP')
+                            ->label('Host do acesso')
                             ->placeholder('-'),
                         TextEntry::make('ftp_user')
-                            ->label('Usuário FTP')
+                            ->label('Usuário de acesso')
                             ->placeholder('-'),
                         TextEntry::make('ftp_password')
-                            ->label('Senha FTP')
+                            ->label('Senha de acesso')
                             ->state(fn (Domain $record): string => filled($record->ftp_password) ? 'Protegida e armazenada com criptografia' : '-'),
                         TextEntry::make('notes')
                             ->label('Observações')

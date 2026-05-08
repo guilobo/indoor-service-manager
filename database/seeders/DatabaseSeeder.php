@@ -8,8 +8,10 @@ use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Domain;
+use App\Models\Proposal;
 use App\Models\Service;
 use App\Models\User;
+use App\ProposalStatus;
 use App\UserRole;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -61,6 +63,14 @@ class DatabaseSeeder extends Seeder
             'status' => ContractStatus::Active,
         ]);
 
+        $proposal = Proposal::factory()->create([
+            'client_id' => $client->id,
+            'title' => 'Proposta de melhorias 2026',
+            'hours' => 12,
+            'hourly_rate' => 180,
+            'status' => ProposalStatus::Pending,
+        ]);
+
         Domain::factory()->count(2)->create([
             'client_id' => $client->id,
             'contract_id' => $contract->id,
@@ -69,6 +79,13 @@ class DatabaseSeeder extends Seeder
 
         Activity::factory()->count(6)->create([
             'contract_id' => $contract->id,
+            'service_id' => Service::query()->inRandomOrder()->value('id'),
+        ]);
+
+        Activity::factory()->create([
+            'contract_id' => null,
+            'proposal_id' => $proposal->id,
+            'title' => 'Elaboração da proposta de melhorias',
             'service_id' => Service::query()->inRandomOrder()->value('id'),
         ]);
     }

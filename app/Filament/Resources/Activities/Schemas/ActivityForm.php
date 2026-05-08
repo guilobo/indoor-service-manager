@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Activities\Schemas;
 
 use App\Models\Activity;
 use App\Models\Contract;
+use App\Models\Proposal;
 use App\Models\Service;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -36,10 +37,32 @@ class ActivityForm
                                     ->options(Contract::query()->orderBy('name')->pluck('name', 'id')->all())
                                     ->searchable()
                                     ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, callable $set): void {
+                                        if (filled($state)) {
+                                            $set('proposal_id', null);
+                                        }
+                                    })
                                     ->disabled(fn (string $operation, callable $get): bool => $operation === 'edit' || filled($get('locked_contract_id')))
                                     ->dehydrated()
-                                    ->required(),
+                                    ->required(fn (callable $get): bool => blank($get('proposal_id'))),
+                                Select::make('proposal_id')
+                                    ->label('Proposta')
+                                    ->options(Proposal::query()->orderBy('title')->pluck('title', 'id')->all())
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, callable $set): void {
+                                        if (filled($state)) {
+                                            $set('contract_id', null);
+                                        }
+                                    })
+                                    ->disabled(fn (string $operation, callable $get): bool => $operation === 'edit' || filled($get('locked_proposal_id')))
+                                    ->dehydrated()
+                                    ->required(fn (callable $get): bool => blank($get('contract_id'))),
                                 Hidden::make('locked_contract_id')
+                                    ->dehydrated(false),
+                                Hidden::make('locked_proposal_id')
                                     ->dehydrated(false),
                                 Select::make('service_id')
                                     ->label('Servico')

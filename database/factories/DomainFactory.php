@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\DomainAccessType;
 use App\DomainStatus;
 use App\Models\Client;
 use App\Models\Domain;
@@ -29,6 +30,10 @@ class DomainFactory extends Factory
                 'usuario' => fake()->userName(),
                 'senha' => fake()->password(),
             ],
+            'access_type' => fake()->randomElement([DomainAccessType::Ftp, DomainAccessType::Sftp]),
+            'access_port' => fake()->randomElement([21, 22]),
+            'access_root_path' => fake()->randomElement(['', '/public_html']),
+            'access_start_path' => fake()->randomElement([null, '', 'public_html']),
             'ftp_host' => fake()->ipv4(),
             'ftp_user' => fake()->userName(),
             'ftp_password' => fake()->password(),

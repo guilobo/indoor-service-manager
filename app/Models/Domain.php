@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\FlexibleEncryptedArray;
+use App\DomainAccessType;
 use App\DomainStatus;
 use Database\Factories\DomainFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +25,10 @@ class Domain extends Model
         'status',
         'notes',
         'credentials',
+        'access_type',
+        'access_port',
+        'access_root_path',
+        'access_start_path',
         'ftp_host',
         'ftp_user',
         'ftp_password',
@@ -40,6 +45,7 @@ class Domain extends Model
     {
         return [
             'status' => DomainStatus::class,
+            'access_type' => DomainAccessType::class,
             'credentials' => 'encrypted:array',
             'ftp_password' => 'encrypted',
             'email_accounts' => FlexibleEncryptedArray::class,
@@ -55,5 +61,10 @@ class Domain extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function canBrowseFiles(): bool
+    {
+        return in_array($this->access_type, [DomainAccessType::Ftp, DomainAccessType::Sftp], true);
     }
 }

@@ -46,6 +46,7 @@ class ActivitiesRelationManager extends RelationManager
                     ->createAnother(false)
                     ->fillForm([
                         'contract_id' => $this->getOwnerRecord()->getKey(),
+                        'proposal_id' => null,
                         'locked_contract_id' => $this->getOwnerRecord()->getKey(),
                         'activity_date' => now()->toDateString(),
                         'reference_period' => now()->format('Y-m'),
@@ -53,6 +54,7 @@ class ActivitiesRelationManager extends RelationManager
                     ->mutateDataUsing(fn (array $data): array => [
                         ...$data,
                         'contract_id' => $this->getOwnerRecord()->getKey(),
+                        'proposal_id' => null,
                     ])
                     ->successRedirectUrl(fn (CreateAction $action): string => ActivityResource::getUrl('edit', ['record' => $action->getRecord()])),
             ])

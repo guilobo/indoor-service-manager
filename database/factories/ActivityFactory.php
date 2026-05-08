@@ -23,6 +23,7 @@ class ActivityFactory extends Factory
 
         return [
             'contract_id' => Contract::factory(),
+            'proposal_id' => null,
             'service_id' => Service::factory(),
             'title' => fake()->sentence(3),
             'description' => fake()->paragraph(),

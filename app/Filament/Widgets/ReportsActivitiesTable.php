@@ -25,8 +25,8 @@ class ReportsActivitiesTable extends TableWidget
             ->recordUrl(fn (Activity $record): string => ActivityResource::getUrl('edit', ['record' => $record]))
             ->query(
                 Activity::query()
-                    ->with(['contract.client', 'service'])
-                    ->when($this->pageFilters['client_id'] ?? null, fn (Builder $query, $clientId): Builder => $query->whereHas('contract', fn (Builder $contractQuery): Builder => $contractQuery->where('client_id', $clientId)))
+                    ->with(['contract.client', 'proposal.client', 'service'])
+                    ->forClient($this->pageFilters['client_id'] ?? null)
                     ->when($this->pageFilters['contract_id'] ?? null, fn (Builder $query, $contractId): Builder => $query->where('contract_id', $contractId))
                     ->when($this->pageFilters['start_date'] ?? null, fn (Builder $query, $startDate): Builder => $query->whereDate('activity_date', '>=', $startDate))
                     ->when($this->pageFilters['end_date'] ?? null, fn (Builder $query, $endDate): Builder => $query->whereDate('activity_date', '<=', $endDate))
@@ -45,8 +45,8 @@ class ReportsActivitiesTable extends TableWidget
                     ])
                     ->modifyQueryUsing(function (Builder $query): Builder {
                         return $query
-                            ->with(['contract.client', 'service'])
-                            ->when($this->pageFilters['client_id'] ?? null, fn (Builder $exportQuery, $clientId): Builder => $exportQuery->whereHas('contract', fn (Builder $contractQuery): Builder => $contractQuery->where('client_id', $clientId)))
+                            ->with(['contract.client', 'proposal.client', 'service'])
+                            ->forClient($this->pageFilters['client_id'] ?? null)
                             ->when($this->pageFilters['contract_id'] ?? null, fn (Builder $exportQuery, $contractId): Builder => $exportQuery->where('contract_id', $contractId))
                             ->when($this->pageFilters['start_date'] ?? null, fn (Builder $exportQuery, $startDate): Builder => $exportQuery->whereDate('activity_date', '>=', $startDate))
                             ->when($this->pageFilters['end_date'] ?? null, fn (Builder $exportQuery, $endDate): Builder => $exportQuery->whereDate('activity_date', '<=', $endDate));
@@ -57,10 +57,16 @@ class ReportsActivitiesTable extends TableWidget
                     ->label('Data')
                     ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('contract.client.name')
-                    ->label('Cliente'),
-                TextColumn::make('contract.name')
-                    ->label('Contrato'),
+                TextColumn::make('client_name')
+                    ->label('Cliente')
+                    ->state(fn (Activity $record): string => $record->client_name),
+                TextColumn::make('source_label')
+                    ->label('Origem')
+                    ->badge()
+                    ->state(fn (Activity $record): string => $record->source_label),
+                TextColumn::make('source_name')
+                    ->label('Contrato/Proposta')
+                    ->state(fn (Activity $record): string => $record->source_name),
                 TextColumn::make('service.name')
                     ->label('Servico')
                     ->placeholder('-'),

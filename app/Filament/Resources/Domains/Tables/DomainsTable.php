@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Domains\Tables;
 
+use App\DomainAccessType;
 use App\DomainStatus;
 use App\Filament\Resources\Domains\DomainResource;
 use App\Models\Client;
@@ -34,14 +35,18 @@ class DomainsTable
                     ->label('Status')
                     ->badge()
                     ->searchable(),
+                TextColumn::make('access_type')
+                    ->label('Acesso')
+                    ->formatStateUsing(fn (DomainAccessType|string|null $state): string => $state instanceof DomainAccessType ? $state->getLabel() ?? $state->value : (string) $state)
+                    ->badge(),
                 TextColumn::make('hosting')
                     ->label('Hospedagem')
                     ->searchable(),
                 TextColumn::make('ftp_host')
-                    ->label('Host FTP')
+                    ->label('Host do acesso')
                     ->searchable(),
                 TextColumn::make('ftp_user')
-                    ->label('Usuário FTP')
+                    ->label('Usuário de acesso')
                     ->searchable(),
                 TextColumn::make('updated_at')
                     ->label('Atualizado em')

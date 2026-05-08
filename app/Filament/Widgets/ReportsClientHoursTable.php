@@ -40,8 +40,13 @@ class ReportsClientHoursTable extends TableWidget
                 DB::raw('clients.name as client_name'),
                 DB::raw('ROUND(SUM(activities.duration_minutes) / 60, 2) as total_hours'),
             ])
-            ->join('contracts', 'contracts.id', '=', 'activities.contract_id')
-            ->join('clients', 'clients.id', '=', 'contracts.client_id')
+            ->leftJoin('contracts', 'contracts.id', '=', 'activities.contract_id')
+            ->leftJoin('proposals', 'proposals.id', '=', 'activities.proposal_id')
+            ->join('clients', function ($join): void {
+                $join
+                    ->on('clients.id', '=', 'contracts.client_id')
+                    ->orOn('clients.id', '=', 'proposals.client_id');
+            })
             ->when($this->pageFilters['client_id'] ?? null, fn (Builder $query, $clientId): Builder => $query->where('clients.id', $clientId))
             ->when($this->pageFilters['contract_id'] ?? null, fn (Builder $query, $contractId): Builder => $query->where('contracts.id', $contractId))
             ->when($this->pageFilters['start_date'] ?? null, fn (Builder $query, $startDate): Builder => $query->whereDate('activities.activity_date', '>=', $startDate))

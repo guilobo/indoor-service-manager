@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Activities\Tables;
 use App\Filament\Resources\Activities\ActivityResource;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Models\Proposal;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -23,12 +24,16 @@ class ActivitiesTable
         return $table
             ->recordUrl(fn ($record): string => ActivityResource::getUrl('edit', ['record' => $record]))
             ->columns([
-                TextColumn::make('contract.client.name')
+                TextColumn::make('client_name')
                     ->label('Cliente')
-                    ->searchable(),
-                TextColumn::make('contract.name')
-                    ->label('Contrato')
-                    ->searchable(),
+                    ->state(fn ($record): string => $record->client_name),
+                TextColumn::make('source_label')
+                    ->label('Origem')
+                    ->badge()
+                    ->state(fn ($record): string => $record->source_label),
+                TextColumn::make('source_name')
+                    ->label('Contrato/Proposta')
+                    ->state(fn ($record): string => $record->source_name),
                 TextColumn::make('service.name')
                     ->label('Serviço')
                     ->searchable(),
@@ -75,7 +80,7 @@ class ActivitiesTable
                             ->searchable()
                             ->preload(),
                     ])
-                    ->query(fn (Builder $query, array $data): Builder => $query->when($data['client_id'] ?? null, fn (Builder $builder, $clientId): Builder => $builder->whereHas('contract', fn (Builder $contractQuery): Builder => $contractQuery->where('client_id', $clientId)))),
+                    ->query(fn (Builder $query, array $data): Builder => $query->forClient($data['client_id'] ?? null)),
                 Filter::make('contrato')
                     ->label('Contrato')
                     ->schema([
@@ -86,6 +91,16 @@ class ActivitiesTable
                             ->preload(),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query->when($data['contract_id'] ?? null, fn (Builder $builder, $contractId): Builder => $builder->where('contract_id', $contractId))),
+                Filter::make('proposta')
+                    ->label('Proposta')
+                    ->schema([
+                        Select::make('proposal_id')
+                            ->label('Proposta')
+                            ->options(Proposal::query()->orderBy('title')->pluck('title', 'id')->all())
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query->when($data['proposal_id'] ?? null, fn (Builder $builder, $proposalId): Builder => $builder->where('proposal_id', $proposalId))),
             ])
             ->recordActions([
                 EditAction::make(),

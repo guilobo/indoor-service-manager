@@ -30,4 +30,9 @@ class Client extends Model
     {
         return $this->hasMany(Contract::class);
     }
+
+    public function proposals(): HasMany
+    {
+        return $this->hasMany(Proposal::class);
+    }
 }

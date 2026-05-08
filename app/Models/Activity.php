@@ -10,17 +10,32 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class Activity extends Model
 {
     /** @use HasFactory<ActivityFactory> */
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $activity): void {
+            if ($activity->contract_id === null && $activity->proposal_id === null) {
+                throw new InvalidArgumentException('A atividade deve estar vinculada a um contrato ou proposta.');
+            }
+
+            if ($activity->contract_id !== null && $activity->proposal_id !== null) {
+                throw new InvalidArgumentException('A atividade deve estar vinculada a apenas um contrato ou proposta.');
+            }
+        });
+    }
+
     /**
      * @var list<string>
      */
     protected $fillable = [
         'contract_id',
+        'proposal_id',
         'service_id',
         'title',
         'description',
@@ -54,6 +69,11 @@ class Activity extends Model
         return $this->belongsTo(Contract::class);
     }
 
+    public function proposal(): BelongsTo
+    {
+        return $this->belongsTo(Proposal::class);
+    }
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
@@ -67,6 +87,43 @@ class Activity extends Model
     public function scopeInProgress(Builder $query): Builder
     {
         return $query->where('is_in_progress', true);
+    }
+
+    public function scopeForClient(Builder $query, int|string|null $clientId): Builder
+    {
+        return $query->when($clientId, fn (Builder $builder): Builder => $builder
+            ->where(function (Builder $clientQuery) use ($clientId): void {
+                $clientQuery
+                    ->whereHas('contract', fn (Builder $contractQuery): Builder => $contractQuery->where('client_id', $clientId))
+                    ->orWhereHas('proposal', fn (Builder $proposalQuery): Builder => $proposalQuery->where('client_id', $clientId));
+            }));
+    }
+
+    public function getClientNameAttribute(): string
+    {
+        return $this->contract?->client?->name
+            ?? $this->proposal?->client?->name
+            ?? '-';
+    }
+
+    public function getSourceLabelAttribute(): string
+    {
+        if ($this->contract_id !== null) {
+            return 'Contrato';
+        }
+
+        if ($this->proposal_id !== null) {
+            return 'Proposta';
+        }
+
+        return '-';
+    }
+
+    public function getSourceNameAttribute(): string
+    {
+        return $this->contract?->name
+            ?? $this->proposal?->title
+            ?? '-';
     }
 
     public function hasOpenTimeEntry(): bool

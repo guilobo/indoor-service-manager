@@ -54,7 +54,7 @@ class ActivityResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['contract.client', 'service']);
+        return parent::getEloquentQuery()->with(['contract.client', 'proposal.client', 'service']);
     }
 
     public static function canDeleteAny(): bool

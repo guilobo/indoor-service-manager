@@ -5,6 +5,7 @@ namespace App\Filament\Exports;
 use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Models\Proposal;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -23,9 +24,17 @@ class ActivityExporter extends Exporter
                 ->label('Data')
                 ->formatStateUsing(fn ($state): string => blank($state) ? '-' : now()->parse($state)->format('d/m/Y')),
             ExportColumn::make('contract.client.name')
-                ->label('Cliente'),
+                ->label('Cliente')
+                ->state(fn (Activity $record): string => $record->client_name),
+            ExportColumn::make('source_label')
+                ->label('Origem')
+                ->state(fn (Activity $record): string => $record->source_label),
             ExportColumn::make('contract.name')
-                ->label('Contrato'),
+                ->label('Contrato')
+                ->state(fn (Activity $record): string => $record->contract?->name ?? '-'),
+            ExportColumn::make('proposal.title')
+                ->label('Proposta')
+                ->state(fn (Activity $record): string => $record->proposal?->title ?? '-'),
             ExportColumn::make('service.name')
                 ->label('Servico')
                 ->default('-'),
@@ -70,7 +79,7 @@ class ActivityExporter extends Exporter
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['contract.client', 'service']);
+        return $query->with(['contract.client', 'proposal.client', 'service']);
     }
 
     public function getFileName(Export $export): string
@@ -85,10 +94,14 @@ class ActivityExporter extends Exporter
             ? Contract::query()->whereKey($options['contract_id'])->value('name')
             : 'todos-contratos';
 
+        $proposalName = filled($options['proposal_id'] ?? null)
+            ? Proposal::query()->whereKey($options['proposal_id'])->value('title')
+            : 'todas-propostas';
+
         $startDate = filled($options['start_date'] ?? null) ? now()->parse($options['start_date'])->format('Y-m-d') : 'inicio';
         $endDate = filled($options['end_date'] ?? null) ? now()->parse($options['end_date'])->format('Y-m-d') : 'fim';
 
-        return Str::of("relatorio-{$clientName}-{$contractName}-{$startDate}-{$endDate}")
+        return Str::of("relatorio-{$clientName}-{$contractName}-{$proposalName}-{$startDate}-{$endDate}")
             ->lower()
             ->ascii()
             ->replaceMatches('/[^a-z0-9]+/', '-')

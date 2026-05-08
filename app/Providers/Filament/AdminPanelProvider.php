@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->spa()
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->databaseNotifications()
             ->brandName('Indoor Service Manager')
             ->colors([
