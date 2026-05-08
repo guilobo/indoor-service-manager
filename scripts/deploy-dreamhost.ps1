@@ -79,6 +79,41 @@ function Invoke-Remote {
     }
 }
 
+function Invoke-RemoteScript {
+    param(
+        [string] $HostName,
+        [string] $SshUser,
+        [string] $SshPass,
+        [string] $Script
+    )
+
+    $localScriptPath = Join-Path ([System.IO.Path]::GetTempPath()) ("dreamhost-deploy-{0}.sh" -f ([guid]::NewGuid().ToString("N")))
+    $remoteScriptPath = "/home/$SshUser/.dreamhost-deploy-$([guid]::NewGuid().ToString("N")).sh"
+
+    try {
+        $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($localScriptPath, $Script, $utf8WithoutBom)
+
+        & $script:PscpPath -batch -pw $SshPass $localScriptPath "${SshUser}@${HostName}:$remoteScriptPath"
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Remote script upload failed with exit code $LASTEXITCODE"
+        }
+
+        Invoke-Remote -HostName $HostName -SshUser $SshUser -SshPass $SshPass -Command "chmod 700 $remoteScriptPath"
+
+        try {
+            Invoke-Remote -HostName $HostName -SshUser $SshUser -SshPass $SshPass -Command "bash $remoteScriptPath"
+        } finally {
+            & $script:PlinkPath -ssh $HostName -l $SshUser -pw $SshPass "rm -f $remoteScriptPath" | Out-Null
+        }
+    } finally {
+        if (Test-Path $localScriptPath) {
+            Remove-Item $localScriptPath -Force
+        }
+    }
+}
+
 $pairs = Read-KeyValueConfig $ConfigPath
 $domain = Get-ConfigValue $pairs @("domain", "app_domain")
 $hostName = Get-ConfigValue $pairs @("host", "ssh_host")
@@ -122,7 +157,9 @@ if (-not $Gel5ApiKey) {
 }
 
 $plinkCandidate = "D:\programas\Putty\plink.exe"
+$pscpCandidate = "D:\programas\Putty\pscp.exe"
 $script:PlinkPath = if (Test-Path $plinkCandidate) { $plinkCandidate } else { "plink.exe" }
+$script:PscpPath = if (Test-Path $pscpCandidate) { $pscpCandidate } else { "pscp.exe" }
 
 $appUrl = "https://$domain"
 $appDir = "/home/$sshUser/itservice-app"
@@ -278,4 +315,4 @@ echo "DEPLOY_OK `$APP_URL_VALUE"
 "@
 
 Write-Host "Deploying $RepositoryUrl#$Branch to $appUrl ..."
-Invoke-Remote -HostName $hostName -SshUser $sshUser -SshPass $sshPass -Command $remoteScript
+Invoke-RemoteScript -HostName $hostName -SshUser $sshUser -SshPass $sshPass -Script $remoteScript
