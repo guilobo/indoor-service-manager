@@ -118,7 +118,7 @@ if (-not $DbPassword) {
     $existingDbPassword = ssh -i $keyPath -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "ubuntu@$hostName" $readExistingDbPasswordCommand 2>$null
 
     if ($LASTEXITCODE -eq 0 -and $existingDbPassword) {
-        $DbPassword = ($existingDbPassword | Select-Object -First 1).Trim()
+        $DbPassword = ($existingDbPassword | Select-Object -First 1).Trim().Trim('"').Trim("'")
     } else {
         $DbPassword = New-Password
     }
