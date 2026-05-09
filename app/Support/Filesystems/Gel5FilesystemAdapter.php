@@ -5,6 +5,7 @@ namespace App\Support\Filesystems;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use League\Flysystem\Config;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
@@ -41,6 +42,15 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
         try {
             return $this->existsAs($path, StorageAttributes::TYPE_FILE);
         } catch (Throwable $exception) {
+            if ($this->isTransientExistenceFailure($exception)) {
+                Log::warning('Unable to check Gel5 file existence; treating the file as missing.', [
+                    'path' => $path,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return false;
+            }
+
             throw UnableToCheckExistence::forLocation($path, $exception);
         }
     }
@@ -50,6 +60,15 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
         try {
             return $this->existsAs($path, StorageAttributes::TYPE_DIRECTORY);
         } catch (Throwable $exception) {
+            if ($this->isTransientExistenceFailure($exception)) {
+                Log::warning('Unable to check Gel5 directory existence; treating the directory as missing.', [
+                    'path' => $path,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return false;
+            }
+
             throw UnableToCheckExistence::forLocation($path, $exception);
         }
     }
@@ -371,7 +390,10 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
 
         return Http::withHeaders([
             'X-API-Key' => $this->apiKey,
-        ])->acceptJson();
+        ])
+            ->connectTimeout(2)
+            ->timeout(5)
+            ->acceptJson();
     }
 
     protected function endpointFor(string $route): string
@@ -422,6 +444,16 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
         }
 
         return implode('/', $parts);
+    }
+
+    protected function isTransientExistenceFailure(Throwable $exception): bool
+    {
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'cURL error 28')
+            || str_contains($message, 'Connection timed out')
+            || str_contains($message, 'Timeout was reached')
+            || str_contains($message, 'Failed to connect');
     }
 
     protected function normalizeType(mixed $type): string

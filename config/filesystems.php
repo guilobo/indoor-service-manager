@@ -42,7 +42,7 @@ return [
             'driver' => 'gel5',
             'endpoint' => env('GEL5_FILES_ENDPOINT', 'https://files.gel5.com/api/index.php'),
             'key' => env('GEL5_FILES_API_KEY'),
-            'root' => env('GEL5_FILES_ROOT', 'indoor-service-manager'),
+            'root' => env('GEL5_FILES_ROOT', 'itservice'),
             'url' => rtrim(env('GEL5_FILES_PUBLIC_URL', 'https://files.gel5.com/storage'), '/'),
             'visibility' => 'public',
             'throw' => false,

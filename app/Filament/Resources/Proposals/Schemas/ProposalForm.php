@@ -100,6 +100,7 @@ class ProposalForm
                             ->label('Arquivo da proposta')
                             ->directory('proposals/files')
                             ->disk('public')
+                            ->fetchFileInformation(false)
                             ->columnSpanFull(),
                         Repeater::make('attachments')
                             ->label('Anexos adicionais')
@@ -113,6 +114,7 @@ class ProposalForm
                                     ->label('Arquivo')
                                     ->directory('proposals/attachments')
                                     ->disk('public')
+                                    ->fetchFileInformation(false)
                                     ->required(),
                             ])
                             ->columns(2)

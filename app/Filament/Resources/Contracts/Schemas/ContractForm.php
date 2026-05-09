@@ -113,6 +113,7 @@ class ContractForm
                             ->helperText('Opcional')
                             ->directory('contracts/files')
                             ->disk('public')
+                            ->fetchFileInformation(false)
                             ->columnSpanFull(),
                     ]),
             ]);

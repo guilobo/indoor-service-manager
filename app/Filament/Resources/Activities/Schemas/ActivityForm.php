@@ -161,6 +161,7 @@ class ActivityForm
                                     ->directory('activities/images')
                                     ->image()
                                     ->disk('public')
+                                    ->fetchFileInformation(false)
                                     ->required(),
                             ])
                             ->columns(2)
@@ -177,6 +178,7 @@ class ActivityForm
                                     ->label('Arquivo')
                                     ->directory('activities/files')
                                     ->disk('public')
+                                    ->fetchFileInformation(false)
                                     ->required(),
                             ])
                             ->columns(2)

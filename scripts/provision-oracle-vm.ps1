@@ -12,7 +12,7 @@ param(
     [string] $AdminPassword = "",
     [string] $Gel5Endpoint = "",
     [string] $Gel5ApiKey = "",
-    [string] $Gel5Root = "",
+    [string] $Gel5Root = "itservice",
     [string] $Gel5PublicUrl = ""
 )
 

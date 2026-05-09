@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -128,4 +129,10 @@ it('returns false for failed writes unless the disk is configured to throw', fun
 
     expect(fn (): bool => Storage::disk('public')->put('contracts/files/a.txt', 'Hello'))
         ->toThrow(UnableToWriteFile::class);
+});
+
+it('treats transient Gel5 existence check failures as missing files', function (): void {
+    Http::fake(fn (): never => throw new ConnectionException('cURL error 28: Failed to connect to files.test port 443 after 2000 ms: Timeout was reached'));
+
+    expect(Storage::disk('public')->exists('contracts/files/missing.pdf'))->toBeFalse();
 });
