@@ -10,8 +10,11 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Placeholder;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 
 class ContractForm
 {
@@ -114,8 +117,33 @@ class ContractForm
                             ->directory('contracts/files')
                             ->disk('public')
                             ->fetchFileInformation(false)
+                            ->openable()
+                            ->downloadable()
+                            ->previewable(false)
+                            ->deletable()
+                            ->columnSpanFull(),
+                        Placeholder::make('contract_file_link')
+                            ->label('Arquivo atual')
+                            ->content(fn (callable $get): HtmlString => self::contractFileLink($get('contract_file')))
+                            ->visible(fn (callable $get): bool => filled($get('contract_file')))
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    public static function contractFileLink(?string $path): HtmlString
+    {
+        if (blank($path)) {
+            return new HtmlString('');
+        }
+
+        $url = e(Storage::disk('public')->url($path));
+        $label = e(basename($path));
+
+        return new HtmlString(
+            <<<HTML
+            <a href="{$url}" target="_blank" rel="noopener noreferrer" class="text-primary-500 hover:text-primary-400 font-medium underline underline-offset-4">Abrir {$label}</a>
+            HTML
+        );
     }
 }
