@@ -172,7 +172,7 @@ it('opens the activity edit page with existing remote upload metadata', function
         'endpoint' => 'https://files.test/api/index.php',
         'key' => 'test-key',
         'root' => 'indoor-service-manager',
-        'url' => 'https://files.test/storage',
+        'url' => 'https://files.test/cdn',
         'visibility' => 'public',
         'throw' => false,
         'report' => false,

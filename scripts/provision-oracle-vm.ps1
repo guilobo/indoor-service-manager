@@ -155,7 +155,7 @@ if (-not $Gel5Root) {
 }
 
 if (-not $Gel5PublicUrl) {
-    $Gel5PublicUrl = "https://$Domain/media"
+    $Gel5PublicUrl = "https://files.gel5.com/cdn"
 }
 
 $remoteScript = @'

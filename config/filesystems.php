@@ -43,7 +43,7 @@ return [
             'endpoint' => env('GEL5_FILES_ENDPOINT', 'https://files.gel5.com/api/index.php'),
             'key' => env('GEL5_FILES_API_KEY'),
             'root' => env('GEL5_FILES_ROOT', 'itservice'),
-            'url' => rtrim(env('GEL5_FILES_PUBLIC_URL', 'https://files.gel5.com/storage'), '/'),
+            'url' => rtrim(env('GEL5_FILES_PUBLIC_URL', 'https://files.gel5.com/cdn'), '/'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

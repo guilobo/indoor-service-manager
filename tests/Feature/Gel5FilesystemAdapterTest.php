@@ -12,7 +12,7 @@ beforeEach(function (): void {
         'endpoint' => 'https://files.test/api/index.php',
         'key' => 'test-key',
         'root' => 'indoor-service-manager',
-        'url' => 'https://files.test/storage',
+        'url' => 'https://files.test/cdn',
         'visibility' => 'public',
         'throw' => false,
         'report' => false,
@@ -81,7 +81,7 @@ it('deletes and moves remote files through the Gel5 key endpoints', function ():
 
 it('generates public URLs with the configured remote root', function (): void {
     expect(Storage::disk('public')->url('contracts/files/a.pdf'))
-        ->toBe('https://files.test/storage/indoor-service-manager/contracts/files/a.pdf');
+        ->toBe('https://files.test/cdn/indoor-service-manager/contracts/files/a.pdf');
 });
 
 it('generates extensionless media URLs for local delivery routes', function (): void {
