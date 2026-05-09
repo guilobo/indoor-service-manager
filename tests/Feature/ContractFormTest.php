@@ -1,7 +1,11 @@
 <?php
 
 use App\Filament\Resources\Contracts\Schemas\ContractForm;
+use Filament\Schemas\Schema;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 it('renders a direct CDN link for an uploaded contract file', function (): void {
     config()->set('filesystems.disks.public', [
@@ -23,4 +27,8 @@ it('renders a direct CDN link for an uploaded contract file', function (): void 
         ->toContain('href="https://files.gel5.com/cdn/itservice/contracts/files/contract.pdf"')
         ->toContain('target="_blank"')
         ->toContain('Abrir contract.pdf');
+});
+
+it('builds the contract form schema without missing component classes', function (): void {
+    expect(ContractForm::configure(Schema::make())->getComponents())->not->toBeEmpty();
 });
