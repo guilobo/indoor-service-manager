@@ -368,8 +368,8 @@ ENV
     php artisan view:cache --no-interaction
 
     mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache
-    chmod -R ug+rw storage bootstrap/cache
     sudo chown -R ubuntu:www-data "$APP_DIR"
+    sudo chmod -R ug+rw storage bootstrap/cache
     sudo find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type d -exec chmod 2775 {} \;
     sudo find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type f -exec chmod 0664 {} \;
 
