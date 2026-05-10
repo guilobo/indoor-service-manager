@@ -142,6 +142,7 @@ class ActivityForm
                                     ->seconds(false),
                                 Textarea::make('notes')
                                     ->label('O que estou fazendo')
+                                    ->hint(fn (Textarea $component): HtmlString => self::autosaveHint((string) $component->getStatePath()))
                                     ->rows(3)
                                     ->live(onBlur: true)
                                     ->columnSpanFull(),
@@ -215,6 +216,21 @@ class ActivityForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    public static function autosaveHint(string $target): HtmlString
+    {
+        $escapedTarget = e($target);
+
+        return new HtmlString(<<<HTML
+            <span wire:loading.delay wire:target="{$escapedTarget}" class="inline-flex items-center gap-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Salvando
+            </span>
+            HTML);
     }
 
     public static function imagePreviewModal(mixed $path, ?string $title = null): HtmlString

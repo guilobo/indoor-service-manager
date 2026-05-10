@@ -59,7 +59,38 @@ class EditActivity extends EditRecord
         $this->dispatch('current-task-navigation-refresh');
     }
 
+    public function updatedInteractsWithSchemas(string $statePath): void
+    {
+        parent::updatedInteractsWithSchemas($statePath);
+
+        if ($this->isTimeEntryNotesStatePath($statePath)) {
+            $this->saveTimeEntries();
+        }
+    }
+
     public function refreshTimer(): void {}
+
+    public function saveTimeEntries(): void
+    {
+        $data = $this->data ?? [];
+        $timeEntries = Activity::sortTimeEntriesDescending($data['time_entries'] ?? []);
+
+        $this->data['time_entries'] = $timeEntries;
+
+        $this->getRecord()->update([
+            'time_entries' => $timeEntries,
+            'duration_minutes' => Activity::calculateDurationMinutes($timeEntries),
+            'is_in_progress' => collect($timeEntries)
+                ->contains(fn (mixed $entry): bool => is_array($entry) && filled($entry['started_at'] ?? null) && blank($entry['ended_at'] ?? null)),
+        ]);
+
+        $this->dispatch('current-task-navigation-refresh');
+    }
+
+    protected function isTimeEntryNotesStatePath(string $statePath): bool
+    {
+        return (bool) preg_match('/^data\.time_entries\.[^.]+\.notes$/', $statePath);
+    }
 
     public function toggleTimeEntry(): void
     {

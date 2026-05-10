@@ -296,5 +296,40 @@ it('starts an activity timer and stores notes for the running interval', functio
         ->get(ActivityResource::getUrl('edit', ['record' => $activity], panel: 'admin'))
         ->assertSuccessful()
         ->assertSee('Tempo em andamento')
-        ->assertSee('O que estou fazendo');
+        ->assertSee('O que estou fazendo')
+        ->assertSee('Salvando');
+});
+
+it('autosaves activity time entry notes when the notes field updates', function () {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $activity = Activity::factory()->create([
+        'time_entries' => [
+            [
+                'started_at' => now()->subMinutes(15)->format('Y-m-d H:i:s'),
+                'ended_at' => null,
+                'notes' => null,
+            ],
+        ],
+        'duration_minutes' => 0,
+        'is_in_progress' => true,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(EditActivity::class, ['record' => $activity->getKey()])
+        ->fillForm([
+            'time_entries' => [
+                [
+                    'started_at' => $activity->time_entries[0]['started_at'],
+                    'ended_at' => null,
+                    'notes' => 'Atualizando o checklist do cliente',
+                ],
+            ],
+        ])
+        ->call('saveTimeEntries')
+        ->assertHasNoErrors();
+
+    expect($activity->fresh()->time_entries[0]['notes'])->toBe('Atualizando o checklist do cliente');
 });
