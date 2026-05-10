@@ -17,9 +17,12 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 class ActivityForm
@@ -163,6 +166,19 @@ class ActivityForm
                                     ->disk('public')
                                     ->fetchFileInformation(false)
                                     ->required(),
+                                Actions::make([
+                                    Action::make('view_image')
+                                        ->label('Visualizar imagem')
+                                        ->icon('heroicon-o-eye')
+                                        ->color('gray')
+                                        ->modalHeading(fn (callable $get): string => $get('title') ?: 'Visualizar imagem')
+                                        ->modalContent(fn (callable $get): HtmlString => self::imagePreviewModal($get('path'), $get('title')))
+                                        ->modalWidth('7xl')
+                                        ->modalSubmitAction(false)
+                                        ->modalCancelActionLabel('Fechar')
+                                        ->visible(fn (callable $get): bool => self::mediaUrl($get('path')) !== null),
+                                ])
+                                    ->columnSpanFull(),
                             ])
                             ->columns(2)
                             ->columnSpanFull(),
@@ -199,6 +215,49 @@ class ActivityForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    public static function imagePreviewModal(mixed $path, ?string $title = null): HtmlString
+    {
+        $url = self::mediaUrl($path);
+
+        if ($url === null) {
+            return new HtmlString('<p class="text-sm text-gray-500 dark:text-gray-400">Salve a atividade para visualizar esta imagem.</p>');
+        }
+
+        $escapedUrl = e($url);
+        $escapedTitle = e($title ?: basename((string) self::mediaPath($path)));
+
+        return new HtmlString(<<<HTML
+            <div class="flex flex-col gap-3">
+                <img src="{$escapedUrl}" alt="{$escapedTitle}" class="max-h-[75vh] w-full rounded-lg object-contain">
+                <a href="{$escapedUrl}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Abrir imagem em nova aba</a>
+            </div>
+            HTML);
+    }
+
+    public static function mediaUrl(mixed $path): ?string
+    {
+        $mediaPath = self::mediaPath($path);
+
+        if ($mediaPath === null || str_starts_with($mediaPath, 'livewire-file:')) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($mediaPath);
+    }
+
+    protected static function mediaPath(mixed $path): ?string
+    {
+        if (is_array($path)) {
+            $path = collect($path)->filter()->first();
+        }
+
+        if (! is_string($path) || blank($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     protected static function formatMinutes(int $minutes): string

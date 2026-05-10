@@ -4,6 +4,7 @@ use App\ContractStatus;
 use App\DomainStatus;
 use App\Filament\Resources\Activities\ActivityResource;
 use App\Filament\Resources\Activities\Pages\EditActivity;
+use App\Filament\Resources\Activities\Schemas\ActivityForm;
 use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
@@ -211,7 +212,30 @@ it('opens the activity edit page with existing remote upload metadata', function
 
     $this->actingAs($user)
         ->get(ActivityResource::getUrl('edit', ['record' => $activity], panel: 'admin'))
-        ->assertSuccessful();
+        ->assertSuccessful()
+        ->assertSee('Visualizar imagem');
+});
+
+it('renders an activity image preview modal with the public CDN URL', function (): void {
+    config()->set('filesystems.disks.public', [
+        'driver' => 'gel5',
+        'endpoint' => 'https://files.test/api/index.php',
+        'key' => 'test-key',
+        'root' => 'itservice',
+        'url' => 'https://files.gel5.com/cdn',
+        'visibility' => 'public',
+        'throw' => false,
+        'report' => false,
+    ]);
+
+    Storage::forgetDisk('public');
+
+    $html = ActivityForm::imagePreviewModal('activities/images/photo.jpg', 'Foto do servico')->toHtml();
+
+    expect($html)
+        ->toContain('src="https://files.gel5.com/cdn/itservice/activities/images/photo.jpg"')
+        ->toContain('alt="Foto do servico"')
+        ->toContain('Abrir imagem em nova aba');
 });
 
 it('redirects the current task page to the running activity', function () {
