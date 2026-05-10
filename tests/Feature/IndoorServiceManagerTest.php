@@ -297,7 +297,8 @@ it('starts an activity timer and stores notes for the running interval', functio
         ->assertSuccessful()
         ->assertSee('Tempo em andamento')
         ->assertSee('O que estou fazendo')
-        ->assertSee('Salvando');
+        ->assertSee('Salvando')
+        ->assertSee('wire:model.live.debounce.1000ms', false);
 });
 
 it('autosaves activity time entry notes when the notes field updates', function () {

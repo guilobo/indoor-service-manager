@@ -144,7 +144,12 @@ class ActivityForm
                                     ->label('O que estou fazendo')
                                     ->hint(fn (Textarea $component): HtmlString => self::autosaveHint((string) $component->getStatePath()))
                                     ->rows(3)
-                                    ->live(onBlur: true)
+                                    ->live(debounce: '1000ms')
+                                    ->afterStateUpdated(function ($livewire): void {
+                                        if (method_exists($livewire, 'saveTimeEntries')) {
+                                            $livewire->saveTimeEntries();
+                                        }
+                                    })
                                     ->columnSpanFull(),
                             ])
                             ->columns(2)
