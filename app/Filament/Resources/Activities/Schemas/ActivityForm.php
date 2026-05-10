@@ -145,6 +145,7 @@ class ActivityForm
                                     ->hint(fn (Textarea $component): HtmlString => self::autosaveHint((string) $component->getStatePath()))
                                     ->rows(3)
                                     ->live(debounce: '1000ms')
+                                    ->skipRenderAfterStateUpdated()
                                     ->afterStateUpdated(function ($livewire): void {
                                         if (method_exists($livewire, 'saveTimeEntries')) {
                                             $livewire->saveTimeEntries();
@@ -229,7 +230,7 @@ class ActivityForm
 
         return new HtmlString(<<<HTML
             <span wire:loading.delay wire:target="{$escapedTarget}" class="inline-flex items-center gap-1 text-xs font-normal text-gray-500 dark:text-gray-400">
-                <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                <svg width="10" height="10" class="animate-spin" viewBox="0 0 24 24" aria-hidden="true" style="width: 10px; height: 10px;">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>

@@ -66,8 +66,6 @@ class EditActivity extends EditRecord
         $data = $this->data ?? [];
         $timeEntries = Activity::sortTimeEntriesDescending($data['time_entries'] ?? []);
 
-        $this->data['time_entries'] = $timeEntries;
-
         $this->getRecord()->update([
             'time_entries' => $timeEntries,
             'duration_minutes' => Activity::calculateDurationMinutes($timeEntries),
@@ -76,6 +74,7 @@ class EditActivity extends EditRecord
         ]);
 
         $this->dispatch('current-task-navigation-refresh');
+        $this->skipRender();
     }
 
     public function toggleTimeEntry(): void
