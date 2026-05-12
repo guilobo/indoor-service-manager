@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\ProposalBillingType;
 use App\ProposalStatus;
 use App\Support\Uploads\LivewireUploadStore;
 use Database\Factories\ProposalFactory;
@@ -24,8 +25,10 @@ class Proposal extends Model
         'client_id',
         'title',
         'description',
+        'billing_type',
         'hours',
         'hourly_rate',
+        'fixed_value',
         'status',
         'proposal_file',
         'attachments',
@@ -38,8 +41,10 @@ class Proposal extends Model
     protected function casts(): array
     {
         return [
+            'billing_type' => ProposalBillingType::class,
             'hours' => 'decimal:2',
             'hourly_rate' => 'decimal:2',
+            'fixed_value' => 'decimal:2',
             'status' => ProposalStatus::class,
             'attachments' => 'array',
         ];
@@ -57,7 +62,37 @@ class Proposal extends Model
 
     public function getEstimatedValueAttribute(): float
     {
+        if ($this->billing_type === ProposalBillingType::Fixed) {
+            return (float) ($this->fixed_value ?? 0);
+        }
+
         return (float) ($this->hours ?? 0) * (float) ($this->hourly_rate ?? 0);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function normalizeBillingData(array $data): array
+    {
+        $billingType = $data['billing_type'] ?? ProposalBillingType::Hourly->value;
+
+        if ($billingType instanceof ProposalBillingType) {
+            $billingType = $billingType->value;
+        }
+
+        $data['billing_type'] = $billingType;
+
+        if ($billingType === ProposalBillingType::Fixed->value) {
+            $data['hours'] = null;
+            $data['hourly_rate'] = null;
+
+            return $data;
+        }
+
+        $data['fixed_value'] = null;
+
+        return $data;
     }
 
     /**

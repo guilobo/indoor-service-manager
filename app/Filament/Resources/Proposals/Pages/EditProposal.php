@@ -35,6 +35,7 @@ class EditProposal extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $data = Proposal::normalizeBillingData($data);
         $data['attachments'] = Proposal::prepareAttachmentItemsForStorage($data['attachments'] ?? [], 'proposals/attachments');
 
         return $data;

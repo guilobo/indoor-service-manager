@@ -4,6 +4,7 @@ use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Proposal;
+use App\ProposalBillingType;
 use App\ProposalStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,47 @@ it('creates proposals as pending by default and calculates their estimated value
     ]);
 
     expect($proposal->fresh()->status)->toBe(ProposalStatus::Pending)
+        ->and($proposal->fresh()->billing_type)->toBe(ProposalBillingType::Hourly)
         ->and($proposal->fresh()->estimated_value)->toBe(2250.0);
+});
+
+it('calculates fixed value proposals from the defined total', function () {
+    $client = Client::factory()->create();
+
+    $proposal = Proposal::query()->create([
+        'client_id' => $client->id,
+        'title' => 'Proposta fechada',
+        'billing_type' => ProposalBillingType::Fixed,
+        'fixed_value' => 3500,
+    ]);
+
+    expect($proposal->fresh()->estimated_value)->toBe(3500.0);
+});
+
+it('normalizes proposal billing fields by billing type', function () {
+    expect(Proposal::normalizeBillingData([
+        'billing_type' => ProposalBillingType::Fixed->value,
+        'hours' => 10,
+        'hourly_rate' => 200,
+        'fixed_value' => 1500,
+    ]))->toMatchArray([
+        'billing_type' => ProposalBillingType::Fixed->value,
+        'hours' => null,
+        'hourly_rate' => null,
+        'fixed_value' => 1500,
+    ]);
+
+    expect(Proposal::normalizeBillingData([
+        'billing_type' => ProposalBillingType::Hourly->value,
+        'hours' => 10,
+        'hourly_rate' => 200,
+        'fixed_value' => 1500,
+    ]))->toMatchArray([
+        'billing_type' => ProposalBillingType::Hourly->value,
+        'hours' => 10,
+        'hourly_rate' => 200,
+        'fixed_value' => null,
+    ]);
 });
 
 it('normalizes proposal attachments when upload paths arrive as arrays', function () {

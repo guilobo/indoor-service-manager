@@ -21,6 +21,7 @@ class CreateProposal extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data = Proposal::normalizeBillingData($data);
         $data['attachments'] = Proposal::prepareAttachmentItemsForStorage($data['attachments'] ?? [], 'proposals/attachments');
 
         return $data;

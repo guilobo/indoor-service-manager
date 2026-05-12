@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Proposals\Schemas;
 
 use App\Models\Client;
+use App\ProposalBillingType;
 use App\ProposalStatus;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -77,15 +78,29 @@ class ProposalForm
                                     ->label('Título da proposta')
                                     ->required()
                                     ->maxLength(255),
+                                Select::make('billing_type')
+                                    ->label('Tipo de cobranca')
+                                    ->options(ProposalBillingType::class)
+                                    ->default(ProposalBillingType::Hourly)
+                                    ->live()
+                                    ->required(),
                                 TextInput::make('hours')
                                     ->label('Horas')
                                     ->numeric()
-                                    ->required(),
+                                    ->required(fn (callable $get): bool => $get('billing_type') === ProposalBillingType::Hourly->value)
+                                    ->visible(fn (callable $get): bool => $get('billing_type') !== ProposalBillingType::Fixed->value),
                                 TextInput::make('hourly_rate')
                                     ->label('Valor por hora')
                                     ->numeric()
                                     ->prefix('R$')
-                                    ->required(),
+                                    ->required(fn (callable $get): bool => $get('billing_type') === ProposalBillingType::Hourly->value)
+                                    ->visible(fn (callable $get): bool => $get('billing_type') !== ProposalBillingType::Fixed->value),
+                                TextInput::make('fixed_value')
+                                    ->label('Valor definido')
+                                    ->numeric()
+                                    ->prefix('R$')
+                                    ->required(fn (callable $get): bool => $get('billing_type') === ProposalBillingType::Fixed->value)
+                                    ->visible(fn (callable $get): bool => $get('billing_type') === ProposalBillingType::Fixed->value),
                                 Select::make('status')
                                     ->label('Status')
                                     ->options(ProposalStatus::class)

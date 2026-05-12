@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Proposals\Tables;
 
 use App\Filament\Resources\Proposals\ProposalResource;
 use App\Models\Client;
+use App\ProposalBillingType;
 use App\ProposalStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -27,13 +28,17 @@ class ProposalsTable
                 TextColumn::make('title')
                     ->label('Proposta')
                     ->searchable(),
+                TextColumn::make('billing_type')
+                    ->label('Cobranca')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('hours')
                     ->label('Horas')
-                    ->numeric(decimalPlaces: 2)
+                    ->state(fn ($record): string => $record->billing_type === ProposalBillingType::Fixed ? '-' : number_format((float) $record->hours, 2, ',', '.'))
                     ->sortable(),
                 TextColumn::make('hourly_rate')
                     ->label('Valor/hora')
-                    ->state(fn ($record): string => 'R$ '.number_format((float) $record->hourly_rate, 2, ',', '.'))
+                    ->state(fn ($record): string => $record->billing_type === ProposalBillingType::Fixed ? '-' : 'R$ '.number_format((float) $record->hourly_rate, 2, ',', '.'))
                     ->sortable(),
                 TextColumn::make('estimated_value')
                     ->label('Valor total')
