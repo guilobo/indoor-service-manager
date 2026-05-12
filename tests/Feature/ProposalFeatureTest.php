@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Resources\Proposals\Schemas\ProposalForm;
 use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
@@ -63,6 +64,16 @@ it('normalizes proposal billing fields by billing type', function () {
         'hourly_rate' => 200,
         'fixed_value' => null,
     ]);
+});
+
+it('detects proposal billing form visibility for enum and string states', function () {
+    expect(ProposalForm::isHourlyBillingType(null))->toBeTrue()
+        ->and(ProposalForm::isHourlyBillingType(ProposalBillingType::Hourly))->toBeTrue()
+        ->and(ProposalForm::isHourlyBillingType(ProposalBillingType::Hourly->value))->toBeTrue()
+        ->and(ProposalForm::isHourlyBillingType(ProposalBillingType::Fixed->value))->toBeFalse()
+        ->and(ProposalForm::isFixedBillingType(ProposalBillingType::Fixed))->toBeTrue()
+        ->and(ProposalForm::isFixedBillingType(ProposalBillingType::Fixed->value))->toBeTrue()
+        ->and(ProposalForm::isFixedBillingType(ProposalBillingType::Hourly->value))->toBeFalse();
 });
 
 it('normalizes proposal attachments when upload paths arrive as arrays', function () {
