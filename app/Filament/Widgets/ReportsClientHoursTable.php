@@ -29,7 +29,8 @@ class ReportsClientHoursTable extends TableWidget
                     ->state(fn ($record): string => number_format((float) $record->total_hours, 2, ',', '.').' h'),
             ])
             ->paginated(false)
-            ->defaultSort('total_hours', 'desc');
+            ->defaultSort('total_hours', 'desc')
+            ->defaultKeySort(false);
     }
 
     protected function getTableQuery(): Builder

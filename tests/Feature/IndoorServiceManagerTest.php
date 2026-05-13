@@ -5,12 +5,14 @@ use App\DomainStatus;
 use App\Filament\Resources\Activities\ActivityResource;
 use App\Filament\Resources\Activities\Pages\EditActivity;
 use App\Filament\Resources\Activities\Schemas\ActivityForm;
+use App\Filament\Widgets\ReportsClientHoursTable;
 use App\Models\Activity;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Domain;
 use App\Models\User;
 use App\UserRole;
+use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -109,6 +111,18 @@ it('allows admin users to access the reports page', function () {
         ->get('/admin/reports')
         ->assertSuccessful()
         ->assertSee('Relatorios');
+});
+
+it('does not add a model key sort to the grouped client hours report', function (): void {
+    $widget = new class extends ReportsClientHoursTable
+    {
+        public function configuredTable(): Table
+        {
+            return $this->table(Table::make($this));
+        }
+    };
+
+    expect($widget->configuredTable()->hasDefaultKeySort())->toBeFalse();
 });
 
 it('calculates activity duration from time entries', function () {
