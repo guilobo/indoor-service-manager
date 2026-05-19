@@ -3,7 +3,7 @@
 return [
     'temporary_file_upload' => [
         'disk' => env('LIVEWIRE_TEMP_UPLOAD_DISK', 'local'),
-        'rules' => ['required', 'file', 'max:102400'],
+        'rules' => ['required', 'file', 'max:512000'],
         'directory' => env('LIVEWIRE_TEMP_UPLOAD_DIRECTORY', 'livewire-tmp'),
         'middleware' => env('LIVEWIRE_TEMP_UPLOAD_MIDDLEWARE', 'throttle:60,1'),
         'preview_mimes' => [
@@ -26,7 +26,7 @@ return [
             'pdf',
             'zip',
         ],
-        'max_upload_time' => (int) env('LIVEWIRE_TEMP_UPLOAD_MAX_UPLOAD_TIME', 20),
+        'max_upload_time' => (int) env('LIVEWIRE_TEMP_UPLOAD_MAX_UPLOAD_TIME', 60),
         'cleanup' => true,
     ],
 ];

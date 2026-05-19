@@ -27,6 +27,8 @@ use Illuminate\Support\Str;
 
 class ActivityForm
 {
+    protected const int MAX_UPLOAD_SIZE_KILOBYTES = 512000;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -173,6 +175,7 @@ class ActivityForm
                                     ->disk('public')
                                     ->storeFiles(false)
                                     ->fetchFileInformation(false)
+                                    ->maxSize(self::MAX_UPLOAD_SIZE_KILOBYTES)
                                     ->maxParallelUploads(1)
                                     ->required(),
                                 Actions::make([
@@ -205,6 +208,7 @@ class ActivityForm
                                     ->disk('public')
                                     ->storeFiles(false)
                                     ->fetchFileInformation(false)
+                                    ->maxSize(self::MAX_UPLOAD_SIZE_KILOBYTES)
                                     ->maxParallelUploads(1)
                                     ->required(),
                             ])

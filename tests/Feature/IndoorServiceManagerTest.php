@@ -206,8 +206,8 @@ it('stores Livewire temporary upload objects on the public disk before saving me
 
 it('keeps Livewire temporary uploads local with a larger upload window', function (): void {
     expect(config('livewire.temporary_file_upload.disk'))->toBe('local')
-        ->and(config('livewire.temporary_file_upload.rules'))->toContain('max:102400')
-        ->and(config('livewire.temporary_file_upload.max_upload_time'))->toBe(20);
+        ->and(config('livewire.temporary_file_upload.rules'))->toContain('max:512000')
+        ->and(config('livewire.temporary_file_upload.max_upload_time'))->toBe(60);
 });
 
 it('opens the activity edit page with existing remote upload metadata', function () {
