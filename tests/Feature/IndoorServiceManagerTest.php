@@ -17,6 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -179,6 +180,34 @@ it('stores serialized Livewire uploads on the public disk before saving media it
 
     Storage::disk('public')->assertExists($items[0]['path']);
     Storage::disk('tmp-for-tests')->assertMissing('livewire-tmp/uploaded-image.png');
+});
+
+it('stores Livewire temporary upload objects on the public disk before saving media items', function () {
+    Storage::fake('tmp-for-tests');
+    Storage::fake('public');
+
+    Storage::disk('tmp-for-tests')->put('livewire-tmp/uploaded-document.pdf', 'pdf-bytes');
+
+    $items = Activity::prepareMediaItemsForStorage([
+        [
+            'title' => 'Documento enviado',
+            'path' => TemporaryUploadedFile::createFromLivewire('uploaded-document.pdf'),
+        ],
+    ], 'activities/files');
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]['title'])->toBe('Documento enviado')
+        ->and($items[0]['path'])->toStartWith('activities/files/')
+        ->and($items[0]['path'])->toEndWith('.pdf');
+
+    Storage::disk('public')->assertExists($items[0]['path']);
+    Storage::disk('tmp-for-tests')->assertMissing('livewire-tmp/uploaded-document.pdf');
+});
+
+it('keeps Livewire temporary uploads local with a larger upload window', function (): void {
+    expect(config('livewire.temporary_file_upload.disk'))->toBe('local')
+        ->and(config('livewire.temporary_file_upload.rules'))->toContain('max:102400')
+        ->and(config('livewire.temporary_file_upload.max_upload_time'))->toBe(20);
 });
 
 it('opens the activity edit page with existing remote upload metadata', function () {

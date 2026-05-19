@@ -31,10 +31,18 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
         protected ?string $apiKey,
         protected string $root = '',
         protected ?string $publicUrl = null,
+        protected int $connectTimeout = 10,
+        protected int $timeout = 300,
+        protected int $retries = 2,
+        protected int $retrySleepMilliseconds = 500,
     ) {
         $this->endpoint = rtrim($endpoint, "? \t\n\r\0\x0B");
         $this->root = $this->normalizePath($root);
         $this->publicUrl = $publicUrl === null ? null : rtrim($publicUrl, '/');
+        $this->connectTimeout = max($connectTimeout, 1);
+        $this->timeout = max($timeout, 1);
+        $this->retries = max($retries, 0);
+        $this->retrySleepMilliseconds = max($retrySleepMilliseconds, 0);
     }
 
     public function fileExists(string $path): bool
@@ -91,6 +99,14 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
     {
         try {
             $remotePath = $this->remotePath($path);
+
+            if (is_resource($contents)) {
+                $metadata = stream_get_meta_data($contents);
+
+                if (($metadata['seekable'] ?? false) === true) {
+                    rewind($contents);
+                }
+            }
 
             $response = $this->request()
                 ->asMultipart()
@@ -391,8 +407,9 @@ class Gel5FilesystemAdapter implements FilesystemAdapter
         return Http::withHeaders([
             'X-API-Key' => $this->apiKey,
         ])
-            ->connectTimeout(2)
-            ->timeout(5)
+            ->connectTimeout($this->connectTimeout)
+            ->timeout($this->timeout)
+            ->retry($this->retries, $this->retrySleepMilliseconds, throw: false)
             ->acceptJson();
     }
 

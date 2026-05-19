@@ -171,7 +171,9 @@ class ActivityForm
                                     ->directory('activities/images')
                                     ->image()
                                     ->disk('public')
+                                    ->storeFiles(false)
                                     ->fetchFileInformation(false)
+                                    ->maxParallelUploads(1)
                                     ->required(),
                                 Actions::make([
                                     Action::make('view_image')
@@ -201,7 +203,9 @@ class ActivityForm
                                     ->label('Arquivo')
                                     ->directory('activities/files')
                                     ->disk('public')
+                                    ->storeFiles(false)
                                     ->fetchFileInformation(false)
+                                    ->maxParallelUploads(1)
                                     ->required(),
                             ])
                             ->columns(2)

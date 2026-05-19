@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use RuntimeException;
+use Throwable;
 
 class LivewireUploadStore
 {
@@ -14,23 +15,40 @@ class LivewireUploadStore
         return str_starts_with($path, 'livewire-file:');
     }
 
-    public static function storePublicly(string $serializedPath, string $directory, bool $failWhenMissing = true): ?string
+    public static function isTemporaryUpload(mixed $upload): bool
     {
-        $filename = Str::after($serializedPath, 'livewire-file:');
+        return $upload instanceof TemporaryUploadedFile
+            || (is_string($upload) && self::isSerializedTemporaryUpload($upload));
+    }
+
+    public static function storePublicly(mixed $upload, string $directory, bool $failWhenMissing = true): ?string
+    {
+        $filename = $upload instanceof TemporaryUploadedFile
+            ? $upload->getFilename()
+            : Str::after((string) $upload, 'livewire-file:');
 
         if (blank($filename)) {
             return null;
         }
 
-        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $extension = $upload instanceof TemporaryUploadedFile
+            ? $upload->getClientOriginalExtension()
+            : pathinfo($filename, PATHINFO_EXTENSION);
         $storedName = (string) Str::ulid().($extension === '' ? '' : ".{$extension}");
         $storedPath = trim($directory.'/'.$storedName, '/');
 
         try {
-            $temporaryFile = TemporaryUploadedFile::createFromLivewire($filename);
+            $temporaryFile = $upload instanceof TemporaryUploadedFile
+                ? $upload
+                : TemporaryUploadedFile::createFromLivewire($filename);
 
             if ($temporaryFile->exists()) {
-                $storedFile = $temporaryFile->storePubliclyAs($directory, $storedName, 'public');
+                $storedFile = retry(
+                    3,
+                    fn (): string|false => $temporaryFile->storePubliclyAs($directory, $storedName, 'public'),
+                    500,
+                );
+
                 $temporaryFile->delete();
 
                 if (is_string($storedFile)) {
@@ -43,10 +61,18 @@ class LivewireUploadStore
 
                 return null;
             }
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
             if ($failWhenMissing) {
                 throw $exception;
             }
+        }
+
+        if (! is_string($upload)) {
+            if ($failWhenMissing) {
+                throw new RuntimeException('Nao foi possivel salvar o upload temporario do Livewire no disco publico.');
+            }
+
+            return null;
         }
 
         $legacyTemporaryPath = 'livewire-tmp/'.$filename;
@@ -57,7 +83,7 @@ class LivewireUploadStore
 
                 return $storedPath;
             }
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
             if ($failWhenMissing) {
                 throw $exception;
             }

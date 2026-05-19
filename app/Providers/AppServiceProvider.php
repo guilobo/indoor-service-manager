@@ -30,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
                 apiKey: $config['key'] ?? null,
                 root: (string) ($config['root'] ?? ''),
                 publicUrl: $config['url'] ?? null,
+                connectTimeout: (int) ($config['connect_timeout'] ?? 10),
+                timeout: (int) ($config['timeout'] ?? 300),
+                retries: (int) ($config['retries'] ?? 2),
+                retrySleepMilliseconds: (int) ($config['retry_sleep'] ?? 500),
             );
 
             return new FilesystemAdapter(

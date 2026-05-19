@@ -274,21 +274,17 @@ class Activity extends Model
     {
         return collect($items ?? [])
             ->map(function (mixed $item) use ($failWhenTemporaryUploadMissing, $temporaryUploadDirectory): ?array {
-                if (is_string($item) && filled($item)) {
-                    if (LivewireUploadStore::isSerializedTemporaryUpload($item)) {
-                        $item = $temporaryUploadDirectory === null
-                            ? null
-                            : LivewireUploadStore::storePublicly($item, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
+                if ((is_string($item) && filled($item)) || LivewireUploadStore::isTemporaryUpload($item)) {
+                    $path = self::storedMediaPath($item, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
 
-                        if ($item === null) {
-                            return null;
-                        }
+                    if ($path === null) {
+                        return null;
                     }
 
                     return [
-                        'title' => pathinfo($item, PATHINFO_FILENAME),
-                        'path' => $item,
-                        'url' => Storage::disk('public')->url($item),
+                        'title' => pathinfo($path, PATHINFO_FILENAME),
+                        'path' => $path,
+                        'url' => Storage::disk('public')->url($path),
                     ];
                 }
 
@@ -304,18 +300,10 @@ class Activity extends Model
                         ->first();
                 }
 
-                if (! is_string($path) || blank($path)) {
+                $path = self::storedMediaPath($path, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
+
+                if ($path === null) {
                     return null;
-                }
-
-                if (LivewireUploadStore::isSerializedTemporaryUpload($path)) {
-                    $path = $temporaryUploadDirectory === null
-                        ? null
-                        : LivewireUploadStore::storePublicly($path, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
-
-                    if ($path === null) {
-                        return null;
-                    }
                 }
 
                 $title = filled($item['title'] ?? null)
@@ -331,6 +319,21 @@ class Activity extends Model
             ->filter()
             ->values()
             ->all();
+    }
+
+    protected static function storedMediaPath(mixed $path, ?string $temporaryUploadDirectory, bool $failWhenTemporaryUploadMissing): ?string
+    {
+        if (LivewireUploadStore::isTemporaryUpload($path)) {
+            return $temporaryUploadDirectory === null
+                ? null
+                : LivewireUploadStore::storePublicly($path, $temporaryUploadDirectory, $failWhenTemporaryUploadMissing);
+        }
+
+        if (! is_string($path) || blank($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     /**
