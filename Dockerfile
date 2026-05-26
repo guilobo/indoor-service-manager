@@ -1,17 +1,4 @@
-FROM node:22-alpine AS frontend
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci
-
-COPY resources ./resources
-COPY public ./public
-COPY vite.config.js ./
-
-RUN npm run build
-
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm-alpine AS app-base
 
 ARG APP_DIR=/var/www/html
 
@@ -49,23 +36,41 @@ RUN apk add --no-cache \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-COPY . ${APP_DIR}
-COPY --from=frontend /app/public/build ${APP_DIR}/public/build
+COPY composer.json composer.lock ./
 
 RUN composer install \
         --no-dev \
         --prefer-dist \
         --no-interaction \
         --optimize-autoloader \
-        --no-scripts \
-    && rm -rf /root/.composer/cache
+        --no-scripts
 
+COPY . ${APP_DIR}
+
+FROM node:22-alpine AS frontend
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.js ./
+COPY --from=app-base /var/www/html/vendor ./vendor
+
+RUN npm run build
+
+FROM app-base
+
+COPY --from=frontend /app/public/build ${APP_DIR}/public/build
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 COPY docker/php/zz-custom.ini /usr/local/etc/php/conf.d/zz-custom.ini
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/start.sh /start.sh
 
 RUN chmod +x /start.sh \
+    && rm -rf /root/.composer/cache \
     && mkdir -p \
         /run/nginx \
         /var/log/supervisor \
