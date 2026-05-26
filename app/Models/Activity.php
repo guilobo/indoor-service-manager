@@ -99,6 +99,34 @@ class Activity extends Model
         return round($this->duration_minutes / 60, 2);
     }
 
+    public function getPlainDescriptionAttribute(): string
+    {
+        return self::plainTextFromDescription($this->description);
+    }
+
+    public static function plainTextFromDescription(?string $description): string
+    {
+        if (blank($description)) {
+            return '';
+        }
+
+        $description = trim($description);
+        $decodedDescription = json_decode($description, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedDescription)) {
+            return Str::of(self::plainTextFromRichTextNode($decodedDescription))
+                ->replaceMatches('/[ \t]+/', ' ')
+                ->replaceMatches('/\n{3,}/', "\n\n")
+                ->trim()
+                ->value();
+        }
+
+        return Str::of(strip_tags($description))
+            ->replaceMatches('/\s+/', ' ')
+            ->trim()
+            ->value();
+    }
+
     public function scopeInProgress(Builder $query): Builder
     {
         return $query->where('is_in_progress', true);
@@ -224,6 +252,31 @@ class Activity extends Model
             ])
             ->values()
             ->all();
+    }
+
+    protected static function plainTextFromRichTextNode(mixed $node): string
+    {
+        if (! is_array($node)) {
+            return '';
+        }
+
+        if (is_string($node['text'] ?? null)) {
+            return $node['text'];
+        }
+
+        if (($node['type'] ?? null) === 'hardBreak') {
+            return "\n";
+        }
+
+        $text = collect($node['content'] ?? [])
+            ->map(fn (mixed $child): string => self::plainTextFromRichTextNode($child))
+            ->implode('');
+
+        if (in_array($node['type'] ?? null, ['paragraph', 'heading', 'blockquote', 'listItem'], true)) {
+            return trim($text)."\n";
+        }
+
+        return $text;
     }
 
     /**

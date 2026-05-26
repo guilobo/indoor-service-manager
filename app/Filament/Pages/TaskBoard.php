@@ -419,7 +419,7 @@ class TaskBoard extends Page
             'service_id' => $activity->service_id,
             'activity_date' => $activity->activity_date?->toDateString() ?? now()->toDateString(),
             'reference_period' => $activity->reference_period,
-            'description' => $activity->description,
+            'description' => $activity->plain_description,
             'external_links_text' => collect($activity->external_links ?? [])
                 ->map(fn (mixed $link): ?string => is_array($link) ? ($link['url'] ?? null) : (is_string($link) ? $link : null))
                 ->filter()

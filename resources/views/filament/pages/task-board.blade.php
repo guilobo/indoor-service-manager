@@ -109,7 +109,7 @@
                                 <div class="mt-3 border-l-2 border-gray-200 pl-3 dark:border-white/15">
                                     <p class="line-clamp-2 text-sm leading-5 text-gray-600 dark:text-gray-300">
                                         @if (filled($activity->description))
-                                            {{ strip_tags((string) $activity->description) }}
+                                            {{ $activity->plain_description }}
                                         @else
                                             {{ $activity->source_name !== '-' ? $activity->source_name : 'Sem cliente definido' }}
                                         @endif

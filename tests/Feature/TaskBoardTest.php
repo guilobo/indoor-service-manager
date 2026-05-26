@@ -105,6 +105,43 @@ it('opens an existing task in the edit modal and saves quick changes', function 
         ->and($task->show_on_task_board)->toBeTrue();
 });
 
+it('renders rich editor json descriptions as plain text on the task board', function (): void {
+    $description = json_encode([
+        'type' => 'doc',
+        'content' => [
+            [
+                'type' => 'paragraph',
+                'content' => [
+                    ['type' => 'text', 'text' => 'Primeira linha'],
+                ],
+            ],
+            [
+                'type' => 'paragraph',
+                'content' => [
+                    ['type' => 'text', 'text' => 'Segunda linha'],
+                ],
+            ],
+        ],
+    ]);
+
+    $activity = Activity::factory()->create([
+        'title' => 'Com JSON',
+        'contract_id' => null,
+        'description' => $description,
+        'kanban_status' => ActivityKanbanStatus::Todo,
+        'show_on_task_board' => true,
+    ]);
+
+    $board = app(TaskBoard::class);
+    $record = $board->columns()[ActivityKanbanStatus::Todo->value]['records']->firstWhere('id', $activity->getKey());
+
+    expect($record->plain_description)->toBe("Primeira linha\nSegunda linha");
+
+    Livewire::test(TaskBoard::class)
+        ->call('editTask', $activity->getKey())
+        ->assertSet('taskForm.description', "Primeira linha\nSegunda linha");
+});
+
 it('opens the conversion modal when a todo task is moved to in progress and starts the timer on confirmation', function (): void {
     $user = User::factory()->create([
         'role' => UserRole::Admin,
