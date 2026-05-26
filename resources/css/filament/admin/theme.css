@@ -3,3 +3,37 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../vendor/slimani/filament-media-manager/resources/**/*';
+
+@layer components {
+    .fi-body {
+        --sidebar-width: 13.5rem !important;
+        --collapsed-sidebar-width: 3.75rem !important;
+    }
+
+    .fi-sidebar-header {
+        padding-inline: 0.75rem !important;
+    }
+
+    .fi-sidebar-nav {
+        padding-inline: 0.5rem !important;
+    }
+
+    .fi-sidebar-group-label {
+        font-size: 0.76rem !important;
+    }
+
+    .fi-sidebar-item-btn {
+        gap: 0.55rem !important;
+        min-height: 2.25rem !important;
+        padding-inline: 0.6rem !important;
+    }
+
+    .fi-sidebar-item-label {
+        font-size: 0.84rem !important;
+    }
+
+    .task-board-shell .fi-section,
+    .task-board-column {
+        border-radius: 0.5rem;
+    }
+}

@@ -48,9 +48,8 @@ class ActivityForm
                                             $set('proposal_id', null);
                                         }
                                     })
-                                    ->disabled(fn (string $operation, callable $get): bool => $operation === 'edit' || filled($get('locked_contract_id')))
-                                    ->dehydrated()
-                                    ->required(fn (callable $get): bool => blank($get('proposal_id'))),
+                                    ->disabled(fn (callable $get): bool => filled($get('locked_contract_id')))
+                                    ->dehydrated(),
                                 Select::make('proposal_id')
                                     ->label('Proposta')
                                     ->options(Proposal::query()->orderBy('title')->pluck('title', 'id')->all())
@@ -62,9 +61,8 @@ class ActivityForm
                                             $set('contract_id', null);
                                         }
                                     })
-                                    ->disabled(fn (string $operation, callable $get): bool => $operation === 'edit' || filled($get('locked_proposal_id')))
-                                    ->dehydrated()
-                                    ->required(fn (callable $get): bool => blank($get('contract_id'))),
+                                    ->disabled(fn (callable $get): bool => filled($get('locked_proposal_id')))
+                                    ->dehydrated(),
                                 Hidden::make('locked_contract_id')
                                     ->dehydrated(false),
                                 Hidden::make('locked_proposal_id')

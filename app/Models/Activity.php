@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\ActivityKanbanStatus;
+use App\ActivityPriority;
 use App\Support\Uploads\LivewireUploadStore;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -22,13 +24,15 @@ class Activity extends Model
     protected static function booted(): void
     {
         static::saving(function (self $activity): void {
-            if ($activity->contract_id === null && $activity->proposal_id === null) {
-                throw new InvalidArgumentException('A atividade deve estar vinculada a um contrato ou proposta.');
-            }
-
             if ($activity->contract_id !== null && $activity->proposal_id !== null) {
                 throw new InvalidArgumentException('A atividade deve estar vinculada a apenas um contrato ou proposta.');
             }
+        });
+
+        static::creating(function (self $activity): void {
+            $activity->activity_date ??= now()->toDateString();
+            $activity->kanban_status ??= ActivityKanbanStatus::Todo;
+            $activity->priority ??= ActivityPriority::Normal;
         });
     }
 
@@ -49,6 +53,11 @@ class Activity extends Model
         'images',
         'files',
         'external_links',
+        'kanban_status',
+        'kanban_position',
+        'priority',
+        'completed_at',
+        'show_on_task_board',
     ];
 
     /**
@@ -63,6 +72,10 @@ class Activity extends Model
             'images' => 'array',
             'files' => 'array',
             'external_links' => 'array',
+            'kanban_status' => ActivityKanbanStatus::class,
+            'priority' => ActivityPriority::class,
+            'completed_at' => 'datetime',
+            'show_on_task_board' => 'boolean',
         ];
     }
 
@@ -99,6 +112,24 @@ class Activity extends Model
                     ->whereHas('contract', fn (Builder $contractQuery): Builder => $contractQuery->where('client_id', $clientId))
                     ->orWhereHas('proposal', fn (Builder $proposalQuery): Builder => $proposalQuery->where('client_id', $clientId));
             }));
+    }
+
+    public function scopeLinkedToClient(Builder $query): Builder
+    {
+        return $query->where(function (Builder $linkedQuery): void {
+            $linkedQuery
+                ->whereNotNull('contract_id')
+                ->orWhereNotNull('proposal_id');
+        });
+    }
+
+    public function scopeVisibleOnTaskBoard(Builder $query): Builder
+    {
+        return $query->where(function (Builder $boardQuery): void {
+            $boardQuery
+                ->where('show_on_task_board', true)
+                ->orWhere('is_in_progress', true);
+        });
     }
 
     public function getClientNameAttribute(): string
@@ -357,5 +388,57 @@ class Activity extends Model
             ->inProgress()
             ->latest('updated_at')
             ->first();
+    }
+
+    public function startTimer(?CarbonInterface $now = null): void
+    {
+        $now ??= now();
+        $timeEntries = self::sortTimeEntriesDescending($this->time_entries ?? []);
+
+        if (self::openTimeEntry($timeEntries) === null) {
+            array_unshift($timeEntries, [
+                'started_at' => $now->copy()->seconds(0)->toDateTimeString(),
+                'ended_at' => null,
+                'notes' => null,
+            ]);
+        }
+
+        $timeEntries = self::sortTimeEntriesDescending($timeEntries);
+
+        $this->forceFill([
+            'time_entries' => $timeEntries,
+            'duration_minutes' => self::calculateDurationMinutes($timeEntries),
+            'is_in_progress' => true,
+            'kanban_status' => ActivityKanbanStatus::InProgress,
+            'show_on_task_board' => true,
+            'completed_at' => null,
+        ])->save();
+    }
+
+    public function completeTask(?CarbonInterface $now = null): void
+    {
+        $now ??= now();
+        $timeEntries = collect($this->time_entries ?? [])
+            ->map(function (mixed $entry) use ($now): mixed {
+                if (! is_array($entry) || blank($entry['started_at'] ?? null) || filled($entry['ended_at'] ?? null)) {
+                    return $entry;
+                }
+
+                $entry['ended_at'] = $now->copy()->seconds(0)->toDateTimeString();
+
+                return $entry;
+            })
+            ->all();
+
+        $timeEntries = self::sortTimeEntriesDescending($timeEntries);
+
+        $this->forceFill([
+            'time_entries' => $timeEntries,
+            'duration_minutes' => self::calculateDurationMinutes($timeEntries),
+            'is_in_progress' => false,
+            'kanban_status' => ActivityKanbanStatus::Done,
+            'show_on_task_board' => true,
+            'completed_at' => $now,
+        ])->save();
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\ActivityKanbanStatus;
+use App\ActivityPriority;
 use App\Models\Activity;
 use App\Models\Contract;
 use App\Models\Service;
@@ -40,6 +42,11 @@ class ActivityFactory extends Factory
             'images' => [],
             'files' => [],
             'external_links' => fake()->boolean(30) ? [fake()->url()] : [],
+            'kanban_status' => ActivityKanbanStatus::Todo,
+            'kanban_position' => fake()->numberBetween(1, 100),
+            'priority' => ActivityPriority::Normal,
+            'completed_at' => null,
+            'show_on_task_board' => false,
         ];
     }
 }

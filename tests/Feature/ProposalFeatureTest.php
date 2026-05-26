@@ -141,14 +141,19 @@ it('filters activities by client through proposals', function () {
         ->toBe([$matchingActivity->id]);
 });
 
-it('requires an activity to belong to exactly one source', function () {
-    Activity::factory()
-        ->make([
+it('allows task-like activities without a contract or proposal', function () {
+    $activity = Activity::factory()
+        ->create([
             'contract_id' => null,
             'proposal_id' => null,
-        ])
-        ->save();
-})->throws(InvalidArgumentException::class);
+        ]);
+
+    expect($activity->contract)->toBeNull()
+        ->and($activity->proposal)->toBeNull()
+        ->and($activity->source_label)->toBe('-')
+        ->and($activity->source_name)->toBe('-')
+        ->and($activity->client_name)->toBe('-');
+});
 
 it('prevents activities from belonging to both a contract and a proposal', function () {
     Activity::factory()

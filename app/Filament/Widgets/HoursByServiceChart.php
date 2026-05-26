@@ -21,6 +21,7 @@ class HoursByServiceChart extends ChartWidget
                 DB::raw('SUM(duration_minutes) as total_minutes'),
             ])
             ->leftJoin('services', 'services.id', '=', 'activities.service_id')
+            ->linkedToClient()
             ->groupBy('service_name')
             ->orderByDesc('total_minutes');
 
