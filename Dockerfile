@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 php:8.3-fpm-alpine AS app-base
+FROM php:8.3-fpm-alpine AS app-base
 
 ARG APP_DIR=/var/www/html
 
@@ -48,7 +48,7 @@ RUN composer install \
 
 COPY . ${APP_DIR}
 
-FROM --platform=linux/amd64 node:22-alpine AS frontend
+FROM node:22-alpine AS frontend
 
 WORKDIR /app
 
