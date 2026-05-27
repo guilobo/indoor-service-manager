@@ -86,4 +86,4 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=30s \
     CMD curl -fsS http://127.0.0.1/up || exit 1
 
-ENTRYPOINT ["/start.sh"]
+ENTRYPOINT ["/bin/sh", "/start.sh"]
