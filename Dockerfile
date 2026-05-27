@@ -25,6 +25,7 @@ RUN apk add --no-cache \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
         exif \
+        ftp \
         gd \
         intl \
         mbstring \
