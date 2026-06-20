@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Activities\Schemas;
 
 use App\Models\Activity;
 use App\Models\Contract;
+use App\Models\Domain;
 use App\Models\Proposal;
 use App\Models\Service;
 use Filament\Actions\Action;
@@ -43,10 +44,16 @@ class ActivityForm
                                     ->searchable()
                                     ->preload()
                                     ->live()
-                                    ->afterStateUpdated(function ($state, callable $set): void {
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set): void {
                                         if (filled($state)) {
                                             $set('proposal_id', null);
                                         }
+
+                                        self::clearIncompatibleDomainSelection(
+                                            self::nullableInteger($get('domain_id')),
+                                            self::resolvedClientId($state, null),
+                                            $set,
+                                        );
                                     })
                                     ->disabled(fn (callable $get): bool => filled($get('locked_contract_id')))
                                     ->dehydrated(),
@@ -56,13 +63,29 @@ class ActivityForm
                                     ->searchable()
                                     ->preload()
                                     ->live()
-                                    ->afterStateUpdated(function ($state, callable $set): void {
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set): void {
                                         if (filled($state)) {
                                             $set('contract_id', null);
                                         }
+
+                                        self::clearIncompatibleDomainSelection(
+                                            self::nullableInteger($get('domain_id')),
+                                            self::resolvedClientId(null, $state),
+                                            $set,
+                                        );
                                     })
                                     ->disabled(fn (callable $get): bool => filled($get('locked_proposal_id')))
                                     ->dehydrated(),
+                                Select::make('domain_id')
+                                    ->label('Dominio')
+                                    ->options(fn (callable $get): array => self::domainOptionsFor(
+                                        self::resolvedClientId($get('contract_id'), $get('proposal_id')),
+                                        self::nullableInteger($get('contract_id')),
+                                    ))
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText('Opcional')
+                                    ->live(),
                                 Hidden::make('locked_contract_id')
                                     ->dehydrated(false),
                                 Hidden::make('locked_proposal_id')
@@ -286,6 +309,66 @@ class ActivityForm
         }
 
         return $path;
+    }
+
+    protected static function clearIncompatibleDomainSelection(?int $domainId, ?int $clientId, callable $set): void
+    {
+        if ($domainId === null || $clientId === null) {
+            return;
+        }
+
+        $matchesClient = Domain::query()
+            ->whereKey($domainId)
+            ->where('client_id', $clientId)
+            ->exists();
+
+        if (! $matchesClient) {
+            $set('domain_id', null);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function domainOptionsFor(?int $clientId, ?int $contractId): array
+    {
+        return Domain::query()
+            ->with('contract')
+            ->when($clientId !== null, fn ($query) => $query->where('client_id', $clientId))
+            ->orderByRaw($contractId !== null ? 'contract_id = ? desc' : 'contract_id is null desc', $contractId !== null ? [$contractId] : [])
+            ->orderBy('domain_name')
+            ->get()
+            ->mapWithKeys(fn (Domain $domain): array => [
+                $domain->getKey() => filled($domain->contract?->name)
+                    ? "{$domain->domain_name} - {$domain->contract->name}"
+                    : $domain->domain_name,
+            ])
+            ->all();
+    }
+
+    protected static function resolvedClientId(mixed $contractId, mixed $proposalId): ?int
+    {
+        $contractId = self::nullableInteger($contractId);
+        $proposalId = self::nullableInteger($proposalId);
+
+        if ($contractId !== null) {
+            return Contract::query()->whereKey($contractId)->value('client_id');
+        }
+
+        if ($proposalId !== null) {
+            return Proposal::query()->whereKey($proposalId)->value('client_id');
+        }
+
+        return null;
+    }
+
+    protected static function nullableInteger(mixed $value): ?int
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        return (int) $value;
     }
 
     protected static function formatMinutes(int $minutes): string

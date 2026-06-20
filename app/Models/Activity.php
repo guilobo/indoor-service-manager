@@ -42,6 +42,7 @@ class Activity extends Model
     protected $fillable = [
         'contract_id',
         'proposal_id',
+        'domain_id',
         'service_id',
         'title',
         'description',
@@ -92,6 +93,11 @@ class Activity extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function domain(): BelongsTo
+    {
+        return $this->belongsTo(Domain::class);
     }
 
     public function getDurationHoursAttribute(): float

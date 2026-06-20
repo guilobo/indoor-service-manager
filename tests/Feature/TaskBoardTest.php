@@ -5,6 +5,10 @@ use App\ActivityPriority;
 use App\Filament\Pages\TaskBoard;
 use App\Filament\Widgets\ReportsActivitiesTable;
 use App\Models\Activity;
+use App\Models\Client;
+use App\Models\Contract;
+use App\Models\Domain;
+use App\Models\Proposal;
 use App\Models\User;
 use App\UserRole;
 use Filament\Tables\Table;
@@ -45,6 +49,33 @@ it('creates a task with only a title on the task board', function (): void {
         ->and($activity->kanban_status)->toBe(ActivityKanbanStatus::Todo)
         ->and($activity->show_on_task_board)->toBeTrue()
         ->and($activity->kanban_position)->toBe(1);
+});
+
+it('creates a task with an existing domain on the task board', function (): void {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $client = Client::factory()->create();
+    $contract = Contract::factory()->create([
+        'client_id' => $client->getKey(),
+    ]);
+    $domain = Domain::factory()->create([
+        'client_id' => $client->getKey(),
+        'contract_id' => $contract->getKey(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(TaskBoard::class)
+        ->set('taskForm.title', 'Ajustar DNS')
+        ->set('taskForm.contract_id', $contract->getKey())
+        ->set('taskForm.domain_id', $domain->getKey())
+        ->call('saveTask')
+        ->assertHasNoErrors();
+
+    $activity = Activity::query()->sole();
+
+    expect($activity->domain_id)->toBe($domain->getKey());
 });
 
 it('keeps todo tasks ordered by insertion position', function (): void {
@@ -103,6 +134,90 @@ it('opens an existing task in the edit modal and saves quick changes', function 
         ->and($task->priority)->toBe(ActivityPriority::Urgent)
         ->and($task->kanban_status)->toBe(ActivityKanbanStatus::InProgress)
         ->and($task->show_on_task_board)->toBeTrue();
+});
+
+it('creates a quick domain from a task contract and selects it automatically', function (): void {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $client = Client::factory()->create();
+    $contract = Contract::factory()->create([
+        'client_id' => $client->getKey(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(TaskBoard::class)
+        ->set('taskForm.title', 'Publicar site')
+        ->set('taskForm.contract_id', $contract->getKey())
+        ->call('openQuickDomainModal')
+        ->set('quickDomainForm.domain_name', 'site-cliente.com.br')
+        ->call('saveQuickDomain')
+        ->assertHasNoErrors()
+        ->assertSet('taskForm.domain_id', Domain::query()->sole()->getKey());
+
+    $domain = Domain::query()->sole();
+
+    expect($domain->client_id)->toBe($client->getKey())
+        ->and($domain->contract_id)->toBe($contract->getKey());
+});
+
+it('creates a quick domain from a task proposal and keeps the contract empty', function (): void {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $client = Client::factory()->create();
+    $proposal = Proposal::factory()->create([
+        'client_id' => $client->getKey(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(TaskBoard::class)
+        ->set('taskForm.title', 'Preparar proposta')
+        ->set('taskForm.proposal_id', $proposal->getKey())
+        ->call('openQuickDomainModal')
+        ->set('quickDomainForm.domain_name', 'proposta-cliente.com.br')
+        ->call('saveQuickDomain')
+        ->assertHasNoErrors();
+
+    $domain = Domain::query()->sole();
+
+    expect($domain->client_id)->toBe($client->getKey())
+        ->and($domain->contract_id)->toBeNull();
+});
+
+it('keeps quick domain creation unavailable without contract or proposal', function (): void {
+    Livewire::test(TaskBoard::class)
+        ->assertSet('quickDomainModalOpen', false)
+        ->call('openQuickDomainModal')
+        ->assertSet('quickDomainModalOpen', false);
+});
+
+it('clears the selected domain when the task client changes', function (): void {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $firstClient = Client::factory()->create();
+    $secondClient = Client::factory()->create();
+    $firstContract = Contract::factory()->create([
+        'client_id' => $firstClient->getKey(),
+    ]);
+    $secondContract = Contract::factory()->create([
+        'client_id' => $secondClient->getKey(),
+    ]);
+    $domain = Domain::factory()->create([
+        'client_id' => $firstClient->getKey(),
+        'contract_id' => $firstContract->getKey(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(TaskBoard::class)
+        ->set('taskForm.contract_id', $firstContract->getKey())
+        ->set('taskForm.domain_id', $domain->getKey())
+        ->set('taskForm.contract_id', $secondContract->getKey())
+        ->assertSet('taskForm.domain_id', null);
 });
 
 it('renders rich editor json descriptions as plain text on the task board', function (): void {

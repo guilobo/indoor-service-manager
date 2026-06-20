@@ -4,9 +4,12 @@ namespace App\Filament\Pages;
 
 use App\ActivityKanbanStatus;
 use App\ActivityPriority;
+use App\DomainAccessType;
+use App\DomainStatus;
 use App\Filament\Resources\Activities\ActivityResource;
 use App\Models\Activity;
 use App\Models\Contract;
+use App\Models\Domain;
 use App\Models\Proposal;
 use App\Models\Service;
 use Filament\Notifications\Notification;
@@ -40,6 +43,8 @@ class TaskBoard extends Page
 
     public bool $conversionModalOpen = false;
 
+    public bool $quickDomainModalOpen = false;
+
     public bool $conversionStartTimer = true;
 
     public ?int $editingTaskId = null;
@@ -51,9 +56,15 @@ class TaskBoard extends Page
      */
     public array $taskForm = [];
 
+    /**
+     * @var array<string, mixed>
+     */
+    public array $quickDomainForm = [];
+
     public function mount(): void
     {
         $this->resetTaskForm();
+        $this->resetQuickDomainForm();
     }
 
     public function getHeading(): string|Htmlable|null
@@ -67,7 +78,7 @@ class TaskBoard extends Page
     public function columns(): array
     {
         $records = Activity::query()
-            ->with(['contract.client', 'proposal.client', 'service'])
+            ->with(['contract.client', 'proposal.client', 'domain.contract', 'service'])
             ->orderBy('kanban_position')
             ->orderBy('id')
             ->get()
@@ -121,6 +132,26 @@ class TaskBoard extends Page
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function domainStatusOptions(): array
+    {
+        return collect(DomainStatus::cases())
+            ->mapWithKeys(fn (DomainStatus $status): array => [$status->value => $status->getLabel() ?? $status->value])
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function domainAccessTypeOptions(): array
+    {
+        return collect(DomainAccessType::cases())
+            ->mapWithKeys(fn (DomainAccessType $accessType): array => [$accessType->value => $accessType->getLabel() ?? $accessType->value])
+            ->all();
+    }
+
+    /**
      * @return array<int, string>
      */
     public function contractOptions(): array
@@ -157,6 +188,31 @@ class TaskBoard extends Page
     /**
      * @return array<int, string>
      */
+    public function domainOptions(): array
+    {
+        return Domain::query()
+            ->with('contract')
+            ->when(
+                $this->resolvedClientId() !== null,
+                fn ($query) => $query->where('client_id', $this->resolvedClientId())
+            )
+            ->orderByRaw(
+                $this->resolvedContractId() !== null ? 'contract_id = ? desc' : 'contract_id is null desc',
+                $this->resolvedContractId() !== null ? [$this->resolvedContractId()] : [],
+            )
+            ->orderBy('domain_name')
+            ->get()
+            ->mapWithKeys(fn (Domain $domain): array => [
+                $domain->getKey() => filled($domain->contract?->name)
+                    ? "{$domain->domain_name} - {$domain->contract->name}"
+                    : $domain->domain_name,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
     public function serviceOptions(): array
     {
         return Service::query()->orderBy('name')->pluck('name', 'id')->all();
@@ -183,6 +239,44 @@ class TaskBoard extends Page
         $this->taskModalOpen = false;
         $this->editingTaskId = null;
         $this->resetTaskForm();
+        $this->resetQuickDomainForm();
+        $this->resetValidation();
+    }
+
+    public function updatedTaskFormContractId(mixed $value): void
+    {
+        if (filled($value)) {
+            $this->taskForm['proposal_id'] = null;
+        }
+
+        $this->clearIncompatibleDomainSelection();
+        $this->resetQuickDomainForm();
+    }
+
+    public function updatedTaskFormProposalId(mixed $value): void
+    {
+        if (filled($value)) {
+            $this->taskForm['contract_id'] = null;
+        }
+
+        $this->clearIncompatibleDomainSelection();
+        $this->resetQuickDomainForm();
+    }
+
+    public function openQuickDomainModal(): void
+    {
+        if (! $this->canQuickCreateDomain()) {
+            return;
+        }
+
+        $this->quickDomainModalOpen = true;
+        $this->resetQuickDomainForm();
+    }
+
+    public function closeQuickDomainModal(): void
+    {
+        $this->quickDomainModalOpen = false;
+        $this->resetQuickDomainForm();
         $this->resetValidation();
     }
 
@@ -203,6 +297,40 @@ class TaskBoard extends Page
         Notification::make()
             ->success()
             ->title($wasEditing ? 'Tarefa atualizada' : 'Tarefa criada')
+            ->send();
+    }
+
+    public function saveQuickDomain(): void
+    {
+        $clientId = $this->resolvedClientId();
+
+        if ($clientId === null) {
+            throw ValidationException::withMessages([
+                'taskForm.contract_id' => 'Escolha um contrato ou uma proposta antes de criar um dominio.',
+            ]);
+        }
+
+        $validated = $this->validate([
+            'quickDomainForm.domain_name' => ['required', 'string', 'max:255'],
+            'quickDomainForm.status' => ['required', 'string'],
+            'quickDomainForm.access_type' => ['required', 'string'],
+        ])['quickDomainForm'];
+
+        $domain = Domain::query()->create([
+            'client_id' => $clientId,
+            'contract_id' => $this->resolvedContractId(),
+            'domain_name' => trim((string) $validated['domain_name']),
+            'status' => DomainStatus::tryFrom((string) $validated['status']) ?? DomainStatus::Active,
+            'access_type' => DomainAccessType::tryFrom((string) $validated['access_type']) ?? DomainAccessType::Ftp,
+        ]);
+
+        $this->taskForm['domain_id'] = $domain->getKey();
+        $this->quickDomainModalOpen = false;
+        $this->resetQuickDomainForm();
+
+        Notification::make()
+            ->success()
+            ->title('Dominio criado')
             ->send();
     }
 
@@ -313,6 +441,7 @@ class TaskBoard extends Page
             'taskForm.priority' => ['required', 'string'],
             'taskForm.contract_id' => ['nullable', 'integer', 'exists:contracts,id'],
             'taskForm.proposal_id' => ['nullable', 'integer', 'exists:proposals,id'],
+            'taskForm.domain_id' => ['nullable', 'integer', 'exists:domains,id'],
             'taskForm.service_id' => ['nullable', 'integer', 'exists:services,id'],
             'taskForm.activity_date' => ['nullable', 'date'],
             'taskForm.reference_period' => ['nullable', 'string', 'max:20'],
@@ -323,6 +452,7 @@ class TaskBoard extends Page
 
         $contractId = filled($validated['contract_id'] ?? null) ? (int) $validated['contract_id'] : null;
         $proposalId = filled($validated['proposal_id'] ?? null) ? (int) $validated['proposal_id'] : null;
+        $domainId = filled($validated['domain_id'] ?? null) ? (int) $validated['domain_id'] : null;
         $status = ActivityKanbanStatus::tryFrom((string) ($validated['kanban_status'] ?? '')) ?? ActivityKanbanStatus::Todo;
         $statusChanged = (! $activity->exists) || (($activity->kanban_status ?? null) !== $status);
 
@@ -332,9 +462,16 @@ class TaskBoard extends Page
             ]);
         }
 
+        if ($domainId !== null && ! $this->domainBelongsToResolvedClient($domainId, $contractId, $proposalId)) {
+            throw ValidationException::withMessages([
+                'taskForm.domain_id' => 'Escolha um dominio do mesmo cliente da tarefa.',
+            ]);
+        }
+
         $activity->forceFill([
             'contract_id' => $contractId,
             'proposal_id' => $proposalId,
+            'domain_id' => $domainId,
             'service_id' => filled($validated['service_id'] ?? null) ? (int) $validated['service_id'] : null,
             'title' => trim((string) $validated['title']),
             'priority' => ActivityPriority::tryFrom((string) ($validated['priority'] ?? '')) ?? ActivityPriority::Normal,
@@ -416,6 +553,7 @@ class TaskBoard extends Page
             'priority' => ($activity->priority ?? ActivityPriority::Normal)->value,
             'contract_id' => $activity->contract_id,
             'proposal_id' => $activity->proposal_id,
+            'domain_id' => $activity->domain_id,
             'service_id' => $activity->service_id,
             'activity_date' => $activity->activity_date?->toDateString() ?? now()->toDateString(),
             'reference_period' => $activity->reference_period,
@@ -436,6 +574,7 @@ class TaskBoard extends Page
             'priority' => ActivityPriority::Normal->value,
             'contract_id' => null,
             'proposal_id' => null,
+            'domain_id' => null,
             'service_id' => null,
             'activity_date' => now()->toDateString(),
             'reference_period' => now()->format('Y-m'),
@@ -443,5 +582,80 @@ class TaskBoard extends Page
             'external_links_text' => '',
             'start_timer' => false,
         ];
+    }
+
+    protected function resetQuickDomainForm(): void
+    {
+        $this->quickDomainForm = [
+            'domain_name' => '',
+            'status' => DomainStatus::Active->value,
+            'access_type' => DomainAccessType::Ftp->value,
+        ];
+    }
+
+    public function canQuickCreateDomain(): bool
+    {
+        return $this->resolvedClientId() !== null;
+    }
+
+    protected function clearIncompatibleDomainSelection(): void
+    {
+        $domainId = $this->nullableInteger($this->taskForm['domain_id'] ?? null);
+
+        if ($domainId === null) {
+            return;
+        }
+
+        if (! $this->domainBelongsToResolvedClient($domainId)) {
+            $this->taskForm['domain_id'] = null;
+        }
+    }
+
+    protected function domainBelongsToResolvedClient(?int $domainId, ?int $contractId = null, ?int $proposalId = null): bool
+    {
+        if ($domainId === null) {
+            return true;
+        }
+
+        $clientId = $this->resolvedClientId($contractId, $proposalId);
+
+        if ($clientId === null) {
+            return true;
+        }
+
+        return Domain::query()
+            ->whereKey($domainId)
+            ->where('client_id', $clientId)
+            ->exists();
+    }
+
+    protected function resolvedClientId(?int $contractId = null, ?int $proposalId = null): ?int
+    {
+        $contractId ??= $this->nullableInteger($this->taskForm['contract_id'] ?? null);
+        $proposalId ??= $this->nullableInteger($this->taskForm['proposal_id'] ?? null);
+
+        if ($contractId !== null) {
+            return Contract::query()->whereKey($contractId)->value('client_id');
+        }
+
+        if ($proposalId !== null) {
+            return Proposal::query()->whereKey($proposalId)->value('client_id');
+        }
+
+        return null;
+    }
+
+    protected function resolvedContractId(): ?int
+    {
+        return $this->nullableInteger($this->taskForm['contract_id'] ?? null);
+    }
+
+    protected function nullableInteger(mixed $value): ?int
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        return (int) $value;
     }
 }

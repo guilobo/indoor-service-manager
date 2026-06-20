@@ -377,3 +377,47 @@ it('autosaves activity time entry notes when the notes field updates', function 
 
     expect($activity->fresh()->time_entries[0]['notes'])->toBe('Atualizando o checklist do cliente');
 });
+
+it('allows editing and clearing the domain on the full activity form', function () {
+    $user = User::factory()->create([
+        'role' => UserRole::Admin,
+    ]);
+
+    $client = Client::factory()->create();
+    $contract = Contract::factory()->create([
+        'client_id' => $client->getKey(),
+    ]);
+    $domain = Domain::factory()->create([
+        'client_id' => $client->getKey(),
+        'contract_id' => $contract->getKey(),
+    ]);
+    $activity = Activity::factory()->create([
+        'contract_id' => $contract->getKey(),
+        'proposal_id' => null,
+        'domain_id' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(EditActivity::class, ['record' => $activity->getKey()])
+        ->fillForm([
+            'contract_id' => $contract->getKey(),
+            'proposal_id' => null,
+            'domain_id' => $domain->getKey(),
+        ])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($activity->fresh()->domain_id)->toBe($domain->getKey());
+
+    Livewire::actingAs($user)
+        ->test(EditActivity::class, ['record' => $activity->getKey()])
+        ->fillForm([
+            'contract_id' => $contract->getKey(),
+            'proposal_id' => null,
+            'domain_id' => null,
+        ])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($activity->fresh()->domain_id)->toBeNull();
+});

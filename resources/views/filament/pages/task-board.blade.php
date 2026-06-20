@@ -141,6 +141,9 @@
                                         @if ($activity->service?->name)
                                             <span class="rounded-full bg-gray-100 px-2 py-1 dark:bg-[#232327]">{{ $activity->service->name }}</span>
                                         @endif
+                                        @if ($activity->domain?->domain_name)
+                                            <span class="rounded-full bg-sky-50 px-2 py-1 text-sky-700 dark:bg-sky-400/10 dark:text-sky-300">{{ $activity->domain->domain_name }}</span>
+                                        @endif
                                         <span class="rounded-full bg-gray-100 px-2 py-1 dark:bg-[#232327]">{{ $activity->source_label }}</span>
                                     </div>
 
@@ -254,6 +257,41 @@
                                 </select>
                             </label>
 
+                            <div class="md:col-span-2">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Dominio</span>
+
+                                    <button
+                                        type="button"
+                                        wire:click="openQuickDomainModal"
+                                        @disabled(! $this->canQuickCreateDomain())
+                                        class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition {{ $this->canQuickCreateDomain() ? 'bg-sky-50 text-sky-700 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-300 dark:hover:bg-sky-400/20' : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-500' }}"
+                                    >
+                                        <x-heroicon-o-plus class="h-4 w-4" />
+                                        Novo dominio
+                                    </button>
+                                </div>
+
+                                <select wire:model="taskForm.domain_id" class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-950 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-gray-950 dark:text-white">
+                                    <option value="">Sem dominio</option>
+                                    @foreach ($this->domainOptions() as $id => $label)
+                                        <option value="{{ $id }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    @if ($this->canQuickCreateDomain())
+                                        Vincule um dominio existente ou crie um novo sem sair da tarefa.
+                                    @else
+                                        Escolha um contrato ou uma proposta para liberar a criacao rapida de dominio.
+                                    @endif
+                                </p>
+
+                                @error('taskForm.domain_id')
+                                    <span class="mt-1 block text-xs text-red-600 dark:text-red-300">{{ $message }}</span>
+                                @enderror
+                            </div>
+
                             <label>
                                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Servico</span>
                                 <select wire:model="taskForm.service_id" class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-950 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-gray-950 dark:text-white">
@@ -317,6 +355,74 @@
                                 <span>{{ $conversionModalOpen ? 'Mover para andamento' : 'Salvar' }}</span>
                             </button>
                         </div>
+                    </footer>
+                </section>
+            </div>
+        @endif
+
+        @if ($quickDomainModalOpen)
+            <div class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-950/75 px-4 py-8">
+                <section class="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10">
+                    <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-white/10">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-950 dark:text-white">Novo dominio</h2>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                Criacao rapida para continuar no fluxo da tarefa.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            wire:click="closeQuickDomainModal"
+                            class="rounded-md p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-gray-200"
+                        >
+                            <x-heroicon-o-x-mark class="h-5 w-5" />
+                        </button>
+                    </div>
+
+                    <div class="space-y-4 px-5 py-5">
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Dominio</span>
+                            <input
+                                type="text"
+                                wire:model="quickDomainForm.domain_name"
+                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-950 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-gray-950 dark:text-white"
+                            />
+                            @error('quickDomainForm.domain_name')
+                                <span class="mt-1 block text-xs text-red-600 dark:text-red-300">{{ $message }}</span>
+                            @enderror
+                        </label>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <label>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Status</span>
+                                <select wire:model="quickDomainForm.status" class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-950 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-gray-950 dark:text-white">
+                                    @foreach ($this->domainStatusOptions() as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+
+                            <label>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Tipo de acesso</span>
+                                <select wire:model="quickDomainForm.access_type" class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-950 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-gray-950 dark:text-white">
+                                    @foreach ($this->domainAccessTypeOptions() as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <footer class="flex justify-end gap-2 border-t border-gray-200 px-5 py-4 dark:border-white/10">
+                        <button type="button" wire:click="closeQuickDomainModal" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/10">
+                            Cancelar
+                        </button>
+
+                        <button type="button" wire:click="saveQuickDomain" wire:loading.attr="disabled" wire:target="saveQuickDomain" class="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:cursor-wait disabled:opacity-70">
+                            <x-heroicon-o-arrow-path class="hidden h-4 w-4 animate-spin" wire:loading.class.remove="hidden" wire:target="saveQuickDomain" />
+                            <span>Criar dominio</span>
+                        </button>
                     </footer>
                 </section>
             </div>
